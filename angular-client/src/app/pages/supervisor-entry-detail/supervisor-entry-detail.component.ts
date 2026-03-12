@@ -1,0 +1,21 @@
+import { Component } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+
+@Component({
+  selector: 'app-supervisor-entry-detail',
+  standalone: true,
+  imports: [FormsModule],
+  template: `
+    <section class="page">
+      <h2>Supervisor Verification Detail</h2>
+      <p>Report info | Employee info | Trailer and fuel info</p>
+      <p>Start gauge value + photo</p>
+      <p>End gauge value + photo</p>
+      <p>Gallons + notes</p>
+      <button>Approve</button>
+      <input [(ngModel)]="reason" placeholder="Rejection reason" />
+      <button>Reject</button>
+    </section>
+  `,
+})
+export class SupervisorEntryDetailComponent { reason = ''; }

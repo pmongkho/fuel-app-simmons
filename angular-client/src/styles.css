@@ -1,1 +1,5 @@
-/* You can add global styles to this file, and also import other style files */
+body { margin: 0; font-family: Arial, sans-serif; background: #f6f8fb; }
+.page { padding: 1rem 1.25rem; }
+input, select, textarea, button { margin: .25rem; padding: .4rem; }
+table { width: 100%; border-collapse: collapse; background: white; }
+th, td { border: 1px solid #ddd; padding: .4rem; }

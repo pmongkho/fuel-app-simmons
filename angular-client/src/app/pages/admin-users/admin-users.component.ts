@@ -1,0 +1,16 @@
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-admin-users',
+  standalone: true,
+  template: `
+    <section class="page">
+      <h2>Admin Users</h2>
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Active</th><th>Edit</th></tr></thead>
+        <tbody><tr><td>Admin One</td><td>admin@fuelapp.local</td><td>Admin</td><td>true</td><td>Edit</td></tr></tbody>
+      </table>
+    </section>
+  `,
+})
+export class AdminUsersComponent {}
