@@ -1,0 +1,18 @@
+import { Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
+
+@Component({
+  selector: 'app-supervisor-entries',
+  standalone: true,
+  imports: [RouterLink],
+  template: `
+    <section class="page">
+      <h2>Pending Verification</h2>
+      <table>
+        <thead><tr><th>Report date</th><th>Employee</th><th>Trailer #</th><th>Fuel type</th><th>Gallons</th><th>Submitted</th><th>Status</th><th>View</th></tr></thead>
+        <tbody><tr><td>2026-03-11</td><td>Employee One</td><td>873423</td><td>RedDiesel</td><td>32</td><td>09:12</td><td>Pending</td><td><a routerLink="/supervisor/entries/1">View</a></td></tr></tbody>
+      </table>
+    </section>
+  `,
+})
+export class SupervisorEntriesComponent {}

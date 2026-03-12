@@ -1,0 +1,41 @@
+<section class="page">
+  <h2>New Fuel Report</h2>
+  <div>
+    <label>Report date <input [(ngModel)]="reportDate" type="date" /></label>
+    <label>Expectations <textarea [(ngModel)]="expectations"></textarea></label>
+    <label>Trailers on yard <textarea [(ngModel)]="trailersOnYard"></textarea></label>
+    <label>Mechanical issues <textarea [(ngModel)]="mechanicalIssues"></textarea></label>
+  </div>
+
+  <h3>Add Entry</h3>
+  <div>
+    <input [(ngModel)]="entry.trailerNumber" placeholder="Trailer number" />
+    <select [(ngModel)]="entry.fuelType">
+      <option>RedDiesel</option><option>ClearDiesel</option><option>Def</option>
+    </select>
+    <input [(ngModel)]="entry.startGaugeLevel" placeholder="Start gauge" />
+    <input [(ngModel)]="entry.endGaugeLevel" placeholder="End gauge" />
+    <input [(ngModel)]="entry.gallonsPumped" type="number" placeholder="Gallons" />
+    <input [(ngModel)]="entry.notes" placeholder="Notes" />
+    <input type="file" />
+    <input type="file" />
+    <button (click)="saveEntry()">Save Entry</button>
+  </div>
+
+  <table>
+    <thead><tr><th>Trailer #</th><th>Fuel type</th><th>Start</th><th>End</th><th>Gallons</th><th>Verification</th><th>Photos</th><th>Actions</th></tr></thead>
+    <tbody>
+      <tr *ngFor="let e of entries()">
+        <td>{{ e.trailerNumber }}</td><td>{{ e.fuelType }}</td><td>{{ e.startGaugeLevel }}</td><td>{{ e.endGaugeLevel }}</td><td>{{ e.gallonsPumped }}</td><td>{{ e.verificationStatus }}</td><td>2</td><td>Edit/Delete</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div>
+    <p>Red Diesel total: {{ redTotal() }}</p>
+    <p>Clear Diesel total: {{ clearTotal() }}</p>
+    <p>DEF total: {{ defTotal() }}</p>
+    <p>Overall total: {{ overallTotal() }}</p>
+  </div>
+  <button>Submit report</button>
+</section>
