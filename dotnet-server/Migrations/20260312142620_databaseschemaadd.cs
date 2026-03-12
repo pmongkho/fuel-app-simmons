@@ -35,13 +35,16 @@ namespace dotnet_server.Migrations
                 table: "FuelEntries",
                 newName: "EnteredAtUtc");
 
-            migrationBuilder.AlterColumn<int>(
-                name: "FuelType",
-                table: "FuelEntries",
-                type: "integer",
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "text");
+            migrationBuilder.Sql(@"
+                ALTER TABLE ""FuelEntries""
+                ALTER COLUMN ""FuelType"" TYPE integer
+                USING CASE
+                    WHEN ""FuelType"" ILIKE 'RedDiesel' THEN 0
+                    WHEN ""FuelType"" ILIKE 'ClearDiesel' THEN 1
+                    WHEN ""FuelType"" ILIKE 'Def' THEN 2
+                    ELSE 0
+                END;
+            ");
 
             migrationBuilder.AddColumn<string>(
                 name: "EndGaugeLevel",
