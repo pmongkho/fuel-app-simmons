@@ -1,20 +1,25 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using dotnet_server._Data;
 using dotnet_server.Application.DTOs;
 using dotnet_server.Domain.Entities;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 
 namespace dotnet_server.Application.Services;
 
-public class AuthService(AppDbContext dbContext, IConfiguration configuration)
+public class AuthService(UserManager<User> userManager, IConfiguration configuration)
 {
     public async Task<AuthResponse?> LoginAsync(LoginRequest request)
     {
-        var user = await dbContext.Users.FirstOrDefaultAsync(x => x.Email == request.Email && x.IsActive);
-        if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        var user = await userManager.FindByEmailAsync(request.Email);
+        if (user is null || !user.IsActive)
+        {
+            return null;
+        }
+
+        var validPassword = await userManager.CheckPasswordAsync(user, request.Password);
+        if (!validPassword)
         {
             return null;
         }
@@ -44,7 +49,7 @@ public class AuthService(AppDbContext dbContext, IConfiguration configuration)
             {
                 Id = user.Id,
                 FullName = user.FullName,
-                Email = user.Email,
+                Email = user.Email ?? string.Empty,
                 Role = user.Role.ToString()
             }
         };
@@ -52,14 +57,18 @@ public class AuthService(AppDbContext dbContext, IConfiguration configuration)
 
     public async Task<UserDto?> GetUserAsync(int userId)
     {
-        return await dbContext.Users.Where(x => x.Id == userId && x.IsActive).Select(x => new UserDto
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is null || !user.IsActive)
         {
-            Id = x.Id,
-            FullName = x.FullName,
-            Email = x.Email,
-            Role = x.Role.ToString()
-        }).FirstOrDefaultAsync();
-    }
+            return null;
+        }
 
-    public static string HashPassword(string password) => BCrypt.Net.BCrypt.HashPassword(password);
+        return new UserDto
+        {
+            Id = user.Id,
+            FullName = user.FullName,
+            Email = user.Email ?? string.Empty,
+            Role = user.Role.ToString()
+        };
+    }
 }

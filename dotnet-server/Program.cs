@@ -4,6 +4,7 @@ using dotnet_server.Application.Services;
 using dotnet_server.Domain.Entities;
 using dotnet_server.Domain.Enums;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -15,6 +16,20 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services
+    .AddIdentityCore<User>(options =>
+    {
+        options.User.RequireUniqueEmail = true;
+        options.Password.RequiredLength = 6;
+        options.Password.RequireDigit = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireNonAlphanumeric = false;
+    })
+    .AddRoles<IdentityRole<int>>()
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddSignInManager();
 
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<EmailService>();
@@ -60,17 +75,51 @@ if (app.Environment.IsDevelopment())
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
-    if (!db.Users.Any())
-    {
-        db.Users.AddRange(
-            new User { FullName = "Employee One", Email = "employee@fuelapp.local", PasswordHash = AuthService.HashPassword("User123!"), Role = UserRole.Employee },
-            new User { FullName = "Supervisor One", Email = "supervisor@fuelapp.local", PasswordHash = AuthService.HashPassword("User123!"), Role = UserRole.Supervisor },
-            new User { FullName = "Admin One", Email = "admin@fuelapp.local", PasswordHash = AuthService.HashPassword("User123!"), Role = UserRole.Admin }
-        );
 
-        db.NotificationRecipients.Add(new NotificationRecipient { Email = "admin@fuelapp.local", RecipientType = "Admin" });
-        db.SaveChanges();
+    if (db.Database.CanConnect())
+    {
+        db.Database.EnsureCreated();
+
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+
+        async Task SeedUserAsync(string fullName, string email, UserRole role)
+        {
+            var existing = await userManager.FindByEmailAsync(email);
+            if (existing is not null)
+            {
+                return;
+            }
+
+            var newUser = new User
+            {
+                FullName = fullName,
+                UserName = email,
+                Email = email,
+                Role = role,
+                IsActive = true
+            };
+
+            var result = await userManager.CreateAsync(newUser, "User123!");
+            if (!result.Succeeded)
+            {
+                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                app.Logger.LogWarning("Failed to seed user {Email}: {Errors}", email, errors);
+            }
+        }
+
+        await SeedUserAsync("Employee One", "employee@fuelapp.local", UserRole.Employee);
+        await SeedUserAsync("Supervisor One", "supervisor@fuelapp.local", UserRole.Supervisor);
+        await SeedUserAsync("Admin One", "admin@fuelapp.local", UserRole.Admin);
+
+        if (!db.NotificationRecipients.Any())
+        {
+            db.NotificationRecipients.Add(new NotificationRecipient { Email = "admin@fuelapp.local", RecipientType = "Admin" });
+            db.SaveChanges();
+        }
+    }
+    else
+    {
+        app.Logger.LogWarning("Database is unreachable at startup. Skipping EnsureCreated and seed data.");
     }
 }
 
