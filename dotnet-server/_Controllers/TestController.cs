@@ -8,6 +8,13 @@ namespace dotnet_server.Controllers;
 [Route("api/[controller]")]
 public class TestController(AppDbContext dbContext) : ControllerBase
 {
+    private readonly AppDbContext dbContext;
+
+    public TestController(AppDbContext dbContext)
+    {
+        this.dbContext = dbContext;
+    }
+
     [HttpGet]
     public IActionResult Get()
     {
