@@ -1,9 +1,9 @@
 using dotnet_server._Data;
 using dotnet_server.Application.DTOs;
-using dotnet_server.Application.Services;
 using dotnet_server.Domain.Entities;
 using dotnet_server.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,7 +12,7 @@ namespace dotnet_server.Api.Controllers;
 [ApiController]
 [Route("api/users")]
 [Authorize(Roles = nameof(UserRole.Admin))]
-public class UsersController(AppDbContext dbContext) : ControllerBase
+public class UsersController(AppDbContext dbContext, UserManager<User> userManager) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetUsers() => Ok(await dbContext.Users.Select(u => new
@@ -32,15 +32,19 @@ public class UsersController(AppDbContext dbContext) : ControllerBase
         var user = new User
         {
             FullName = request.FullName,
+            UserName = request.Email,
             Email = request.Email,
-            PasswordHash = AuthService.HashPassword(request.Password),
             Role = role,
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow
         };
 
-        dbContext.Users.Add(user);
-        await dbContext.SaveChangesAsync();
+        var createResult = await userManager.CreateAsync(user, request.Password);
+        if (!createResult.Succeeded)
+        {
+            return BadRequest(new { errors = createResult.Errors.Select(e => e.Description).ToList() });
+        }
+
         return Ok(new { user.Id });
     }
 

@@ -1,11 +1,12 @@
 using dotnet_server.Domain.Entities;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace dotnet_server._Data;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<User, IdentityRole<int>, int>(options)
 {
-    public DbSet<User> Users => Set<User>();
     public DbSet<FuelReport> FuelReports => Set<FuelReport>();
     public DbSet<FuelEntry> FuelEntries => Set<FuelEntry>();
     public DbSet<FuelEntryPhoto> FuelEntryPhotos => Set<FuelEntryPhoto>();
@@ -14,6 +15,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
         modelBuilder.Entity<User>().HasIndex(x => x.Email).IsUnique();
 
         modelBuilder.Entity<FuelReport>()
