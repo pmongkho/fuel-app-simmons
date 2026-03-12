@@ -9,11 +9,7 @@ namespace dotnet_server.Controllers;
 public class TestController(AppDbContext dbContext) : ControllerBase
 {
     private readonly AppDbContext dbContext;
-
-    public TestController(AppDbContext dbContext)
-    {
-        this.dbContext = dbContext;
-    }
+    
 
     [HttpGet]
     public IActionResult Get()
