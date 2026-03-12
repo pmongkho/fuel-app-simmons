@@ -110,3 +110,12 @@
 /Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/bin/Debug/net8.0/zh-Hans/Microsoft.CodeAnalysis.Workspaces.resources.dll
 /Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/bin/Debug/net8.0/zh-Hant/Microsoft.CodeAnalysis.Workspaces.resources.dll
 /Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/obj/Debug/net8.0/dotnet-server.sourcelink.json
+/Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/bin/Debug/net8.0/BCrypt.Net-Next.dll
+/Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/bin/Debug/net8.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll
+/Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/bin/Debug/net8.0/Microsoft.IdentityModel.Abstractions.dll
+/Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/bin/Debug/net8.0/Microsoft.IdentityModel.JsonWebTokens.dll
+/Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/bin/Debug/net8.0/Microsoft.IdentityModel.Logging.dll
+/Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/bin/Debug/net8.0/Microsoft.IdentityModel.Protocols.dll
+/Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/bin/Debug/net8.0/Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+/Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/bin/Debug/net8.0/Microsoft.IdentityModel.Tokens.dll
+/Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/bin/Debug/net8.0/System.IdentityModel.Tokens.Jwt.dll
