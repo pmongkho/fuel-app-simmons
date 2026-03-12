@@ -17,6 +17,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     {
         base.OnModelCreating(modelBuilder);
 
+        // Keep Identity user storage aligned with existing migrations/schema.
+        modelBuilder.Entity<User>().ToTable("Users");
+
         modelBuilder.Entity<User>().HasIndex(x => x.Email).IsUnique();
 
         modelBuilder.Entity<FuelReport>()
