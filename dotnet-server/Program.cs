@@ -83,6 +83,19 @@ using (var scope = app.Services.CreateScope())
     {
         db.Database.Migrate();
 
+        await db.Database.ExecuteSqlRawAsync("""
+            DO $$
+            BEGIN
+                IF to_regclass('public."AspNetUsers"') IS NULL THEN
+                    IF to_regclass('public."Users"') IS NOT NULL THEN
+                        ALTER TABLE "Users" RENAME TO "AspNetUsers";
+                    ELSIF to_regclass('public.users') IS NOT NULL THEN
+                        ALTER TABLE users RENAME TO "AspNetUsers";
+                    END IF;
+                END IF;
+            END $$;
+            """);
+
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
 
         async Task SeedUserAsync(string fullName, string email, UserRole role)
