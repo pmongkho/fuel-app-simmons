@@ -6,8 +6,7 @@ interface Entry {
   trailerNumber: string;
   fuelType: 'RedDiesel' | 'ClearDiesel' | 'Def';
   trailerLocation: 'Main' | 'Flex';
-  startGaugeLevel: string;
-  endGaugeLevel: string;
+  trailerTankFull: boolean;
   fuelingTankLevelStart: number | null;
   fuelingTankLevelEnd: number | null;
   gallonsPumped: number | null;
@@ -31,8 +30,7 @@ export class ReportsNewComponent {
     trailerNumber: '',
     fuelType: 'RedDiesel',
     trailerLocation: 'Main',
-    startGaugeLevel: '1/8',
-    endGaugeLevel: '1/8',
+    trailerTankFull: false,
     fuelingTankLevelStart: null,
     fuelingTankLevelEnd: null,
     gallonsPumped: null,
@@ -66,8 +64,7 @@ export class ReportsNewComponent {
       trailerNumber: '',
       fuelType: 'RedDiesel',
       trailerLocation: 'Main',
-      startGaugeLevel: '1/8',
-      endGaugeLevel: '1/8',
+      trailerTankFull: false,
       fuelingTankLevelStart: null,
       fuelingTankLevelEnd: null,
       gallonsPumped: null,

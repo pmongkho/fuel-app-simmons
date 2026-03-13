@@ -28,26 +28,10 @@
       <select [(ngModel)]="entry.fuelType" class="rounded-lg border border-slate-300 px-3 py-2 ring-sky-300 outline-none focus:ring">
         <option>RedDiesel</option><option>ClearDiesel</option><option>Def</option>
       </select>
-      <select [(ngModel)]="entry.startGaugeLevel" class="rounded-lg border border-slate-300 px-3 py-2 ring-sky-300 outline-none focus:ring">
-        <option>1/8</option>
-        <option>1/4</option>
-        <option>3/8</option>
-        <option>1/2</option>
-        <option>5/8</option>
-        <option>3/4</option>
-        <option>7/8</option>
-        <option>Full</option>
-      </select>
-      <select [(ngModel)]="entry.endGaugeLevel" class="rounded-lg border border-slate-300 px-3 py-2 ring-sky-300 outline-none focus:ring">
-        <option>1/8</option>
-        <option>1/4</option>
-        <option>3/8</option>
-        <option>1/2</option>
-        <option>5/8</option>
-        <option>3/4</option>
-        <option>7/8</option>
-        <option>Full</option>
-      </select>
+      <label class="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700">
+        <input [(ngModel)]="entry.trailerTankFull" type="checkbox" />
+        Trailer tank full
+      </label>
       <input [(ngModel)]="entry.fuelingTankLevelStart" type="number" min="0" max="999999" placeholder="Fueling Tank Start (0 - 999999)" class="rounded-lg border border-slate-300 px-3 py-2 ring-sky-300 outline-none focus:ring" />
       <input [(ngModel)]="entry.fuelingTankLevelEnd" type="number" min="0" max="999999" placeholder="Fueling Tank End (0 - 999999)" class="rounded-lg border border-slate-300 px-3 py-2 ring-sky-300 outline-none focus:ring" />
       <input [(ngModel)]="entry.gallonsPumped" type="number" [attr.placeholder]="'Gallons pumped (enter amount)'" class="rounded-lg border border-slate-300 px-3 py-2 ring-sky-300 outline-none focus:ring" />
@@ -67,7 +51,7 @@
             <th class="px-2 py-2 font-medium">Trailer #</th>
             <th class="px-2 py-2 font-medium">Location</th>
             <th class="px-2 py-2 font-medium">Fuel type</th>
-            <th class="px-2 py-2 font-medium">Trailer Tank (Start → End)</th>
+            <th class="px-2 py-2 font-medium">Trailer Tank</th>
             <th class="px-2 py-2 font-medium">Fueling Tank (Start → End)</th>
             <th class="px-2 py-2 font-medium">Gallons</th>
             <th class="px-2 py-2 font-medium">Mechanical</th>
@@ -79,7 +63,7 @@
             <td class="px-2 py-2">{{ e.trailerNumber }}</td>
             <td class="px-2 py-2">{{ e.trailerLocation }}</td>
             <td class="px-2 py-2">{{ e.fuelType }}</td>
-            <td class="px-2 py-2">{{ e.startGaugeLevel }} → {{ e.endGaugeLevel }}</td>
+            <td class="px-2 py-2">{{ e.trailerTankFull ? "Full" : "Not full" }}</td>
             <td class="px-2 py-2">{{ e.fuelingTankLevelStart ?? 0 }} → {{ e.fuelingTankLevelEnd ?? 0 }}</td>
             <td class="px-2 py-2">{{ e.gallonsPumped ?? 0 }}</td>
             <td class="px-2 py-2">{{ e.hasMechanicalIssues ? 'Yes' : 'No' }}</td>
