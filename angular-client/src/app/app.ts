@@ -12,6 +12,9 @@ import { AuthService } from './core/auth.service';
 export class App {
   private readonly auth = inject(AuthService);
   readonly showLogout = computed(() => !!this.auth.user());
+  readonly canAccessEmployee = computed(() => this.auth.hasRole('Employee', 'Supervisor', 'Admin'));
+  readonly canAccessSupervisor = computed(() => this.auth.hasRole('Supervisor', 'Admin'));
+  readonly canAccessAdmin = computed(() => this.auth.hasRole('Admin'));
 
   logout() {
     this.auth.logout();

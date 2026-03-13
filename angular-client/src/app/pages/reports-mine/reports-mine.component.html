@@ -1,0 +1,33 @@
+<section class="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+  <div>
+    <h2 class="text-2xl font-semibold">My Fuel Reports</h2>
+    <p class="mt-1 text-sm text-slate-600">Signed in as <strong>{{ userName }}</strong>.</p>
+  </div>
+
+  @if (loading()) {
+    <p class="text-sm text-slate-600">Loading reports...</p>
+  } @else if (reports().length === 0) {
+    <p class="text-sm text-slate-600">No reports found yet.</p>
+  } @else {
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-left text-sm">
+        <thead class="border-y border-slate-200 bg-slate-50 text-slate-600">
+          <tr>
+            <th class="px-3 py-2 font-medium">Report Date</th>
+            <th class="px-3 py-2 font-medium">Status</th>
+            <th class="px-3 py-2 font-medium">Gallons</th>
+            <th class="px-3 py-2 font-medium">Submitted</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of reports()" class="border-b border-slate-100">
+            <td class="px-3 py-2">{{ row.reportDate }}</td>
+            <td class="px-3 py-2">{{ row.status }}</td>
+            <td class="px-3 py-2">{{ row.overallTotalGallons }}</td>
+            <td class="px-3 py-2">{{ row.submittedAtUtc || '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
