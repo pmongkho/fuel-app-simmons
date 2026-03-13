@@ -1,10 +1,77 @@
-<section class="page">
-  <h2>Supervisor Verification Detail</h2>
-  <p>Report info | Employee info | Trailer and fuel info</p>
-  <p>Start gauge value + photo</p>
-  <p>End gauge value + photo</p>
-  <p>Gallons + notes</p>
-  <button>Approve</button>
-  <input [(ngModel)]="reason" placeholder="Rejection reason" />
-  <button>Reject</button>
+<section class="mx-auto max-w-5xl space-y-5 px-4 py-8 sm:px-6 lg:px-8">
+  <header class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Supervisor Verification</p>
+    <h2 class="mt-1 text-2xl font-bold text-slate-900">Entry Review + Signature</h2>
+  </header>
+
+  @if (decision === 'approved') {
+    <p class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">Entry approved and digitally signed by {{ signatureName }}.</p>
+  }
+
+  @if (decision === 'rejected') {
+    <p class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">Entry rejected by {{ signatureName }}. Reason logged: {{ rejectionReason }}</p>
+  }
+
+  <div class="grid gap-4 md:grid-cols-2">
+    <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 class="text-base font-semibold text-slate-900">Report details</h3>
+      <div class="mt-3 space-y-2 text-sm text-slate-700">
+        <p><strong>Report date:</strong> {{ entry.reportDate }}</p>
+        <p><strong>Employee:</strong> {{ entry.employee }}</p>
+        <p><strong>Trailer #:</strong> {{ entry.trailer }}</p>
+        <p><strong>Fuel type:</strong> {{ entry.fuelType }}</p>
+      </div>
+    </article>
+
+    <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 class="text-base font-semibold text-slate-900">Fuel evidence</h3>
+      <div class="mt-3 space-y-2 text-sm text-slate-700">
+        <p><strong>Start gauge:</strong> {{ entry.startGauge }}</p>
+        <p><strong>End gauge:</strong> {{ entry.endGauge }}</p>
+        <p><strong>Gallons:</strong> {{ entry.gallons }}</p>
+        <p><strong>Notes:</strong> {{ entry.notes }}</p>
+      </div>
+    </article>
+  </div>
+
+  <article class="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <h3 class="text-base font-semibold text-slate-900">Verification checklist</h3>
+    <label class="flex items-start gap-2 text-sm text-slate-700"><input type="checkbox" class="mt-0.5" [(ngModel)]="meterVerified" /> Meter readings are consistent.</label>
+    <label class="flex items-start gap-2 text-sm text-slate-700"><input type="checkbox" class="mt-0.5" [(ngModel)]="photoVerified" /> Required before/after photos are legible.</label>
+    <label class="flex items-start gap-2 text-sm text-slate-700"><input type="checkbox" class="mt-0.5" [(ngModel)]="fuelAmountVerified" /> Gallons submitted align with gauge delta.</label>
+  </article>
+
+  <article class="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div>
+      <h3 class="text-base font-semibold text-slate-900">Supervisor signature</h3>
+      <p class="mt-1 text-sm text-slate-600">Type your name and 4+ digit supervisor PIN to sign this verification.</p>
+    </div>
+
+    <div class="grid gap-3 sm:grid-cols-2">
+      <label class="text-sm font-medium text-slate-700">
+        Printed name
+        <input type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal" [(ngModel)]="signatureName" placeholder="Supervisor full name" />
+      </label>
+
+      <label class="text-sm font-medium text-slate-700">
+        Signature PIN
+        <input type="password" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal" [(ngModel)]="signaturePin" placeholder="••••" />
+      </label>
+    </div>
+
+    <label class="flex items-start gap-2 text-sm text-slate-700">
+      <input type="checkbox" class="mt-0.5" [(ngModel)]="attestationChecked" />
+      I attest that I have reviewed this entry and the provided evidence.
+    </label>
+
+    <label class="block text-sm font-medium text-slate-700">
+      Rejection reason (required for reject)
+      <textarea class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal" [(ngModel)]="rejectionReason" rows="3" placeholder="Explain why this entry should be corrected or resubmitted"></textarea>
+    </label>
+
+    <div class="flex flex-wrap gap-3 pt-1">
+      <button class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white enabled:hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50" type="button" (click)="approve()" [disabled]="!canApprove">Approve + Sign</button>
+      <button class="rounded-lg bg-rose-700 px-4 py-2 text-sm font-semibold text-white enabled:hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-50" type="button" (click)="reject()" [disabled]="!canReject">Reject</button>
+    </div>
+  </article>
 </section>
