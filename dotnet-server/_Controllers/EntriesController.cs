@@ -15,10 +15,26 @@ namespace dotnet_server.Api.Controllers;
 [Authorize]
 public class EntriesController(AppDbContext dbContext) : ControllerBase
 {
+    private static readonly HashSet<string> AllowedTrailerTankLevels = ["1/8", "1/4", "3/8", "1/2", "5/8", "3/4", "7/8", "Full"];
+
+    private static bool TankLevelsMatchGallonsPumped(CreateFuelEntryRequest request)
+    {
+        if (request.FuelingTankLevelStart is null || request.FuelingTankLevelEnd is null) return false;
+        var expectedGallons = request.FuelingTankLevelStart.Value - request.FuelingTankLevelEnd.Value;
+        return expectedGallons == request.GallonsPumped;
+    }
+
     [HttpPost("reports/{reportId:int}/entries")]
     public async Task<IActionResult> CreateEntry(int reportId, [FromBody] CreateFuelEntryRequest request)
     {
         if (!Enum.TryParse<FuelType>(request.FuelType, true, out var fuelType)) return BadRequest("Invalid fuel type");
+        if (!AllowedTrailerTankLevels.Contains(request.StartGaugeLevel) || !AllowedTrailerTankLevels.Contains(request.EndGaugeLevel))
+            return BadRequest("Trailer tank levels must be one of: 1/8, 1/4, 3/8, 1/2, 5/8, 3/4, 7/8, Full.");
+        if (request.FuelingTankLevelStart is < 0 or > 999999 || request.FuelingTankLevelEnd is < 0 or > 999999)
+            return BadRequest("Fueling tank levels must be between 0 and 999999.");
+        if (!TankLevelsMatchGallonsPumped(request))
+            return BadRequest("Fueling tank start and finish must match gallons pumped (start - finish = gallons pumped).");
+
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         var report = await dbContext.FuelReports.Include(x => x.Entries).FirstOrDefaultAsync(x => x.Id == reportId);
@@ -31,7 +47,11 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
             FuelType = fuelType,
             StartGaugeLevel = request.StartGaugeLevel,
             EndGaugeLevel = request.EndGaugeLevel,
+            TrailerLocation = request.TrailerLocation,
+            FuelingTankLevelStart = request.FuelingTankLevelStart,
+            FuelingTankLevelEnd = request.FuelingTankLevelEnd,
             GallonsPumped = request.GallonsPumped,
+            HasMechanicalIssues = request.HasMechanicalIssues,
             Notes = request.Notes,
             EnteredByUserId = userId,
             EnteredAtUtc = DateTime.UtcNow
@@ -47,6 +67,12 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
     public async Task<IActionResult> EditEntry(int entryId, [FromBody] CreateFuelEntryRequest request)
     {
         if (!Enum.TryParse<FuelType>(request.FuelType, true, out var fuelType)) return BadRequest("Invalid fuel type");
+        if (!AllowedTrailerTankLevels.Contains(request.StartGaugeLevel) || !AllowedTrailerTankLevels.Contains(request.EndGaugeLevel))
+            return BadRequest("Trailer tank levels must be one of: 1/8, 1/4, 3/8, 1/2, 5/8, 3/4, 7/8, Full.");
+        if (request.FuelingTankLevelStart is < 0 or > 999999 || request.FuelingTankLevelEnd is < 0 or > 999999)
+            return BadRequest("Fueling tank levels must be between 0 and 999999.");
+        if (!TankLevelsMatchGallonsPumped(request))
+            return BadRequest("Fueling tank start and finish must match gallons pumped (start - finish = gallons pumped).");
 
         var entry = await dbContext.FuelEntries.Include(x => x.FuelReport).ThenInclude(r => r!.Entries).FirstOrDefaultAsync(x => x.Id == entryId);
         if (entry is null) return NotFound();
@@ -56,7 +82,11 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
         entry.FuelType = fuelType;
         entry.StartGaugeLevel = request.StartGaugeLevel;
         entry.EndGaugeLevel = request.EndGaugeLevel;
+        entry.TrailerLocation = request.TrailerLocation;
+        entry.FuelingTankLevelStart = request.FuelingTankLevelStart;
+        entry.FuelingTankLevelEnd = request.FuelingTankLevelEnd;
         entry.GallonsPumped = request.GallonsPumped;
+        entry.HasMechanicalIssues = request.HasMechanicalIssues;
         entry.Notes = request.Notes;
 
         ReportTotalsService.Recalculate(entry.FuelReport!);
