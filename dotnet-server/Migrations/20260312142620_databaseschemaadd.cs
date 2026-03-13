@@ -173,7 +173,7 @@ namespace dotnet_server.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Users",
+                name: "AspNetUsers",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -187,7 +187,7 @@ namespace dotnet_server.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Users", x => x.Id);
+                    table.PrimaryKey("PK_AspNetUsers", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -213,9 +213,9 @@ namespace dotnet_server.Migrations
                 {
                     table.PrimaryKey("PK_FuelReports", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_FuelReports_Users_CreatedByUserId",
+                        name: "FK_FuelReports_AspNetUsers_CreatedByUserId",
                         column: x => x.CreatedByUserId,
-                        principalTable: "Users",
+                        principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -246,8 +246,8 @@ namespace dotnet_server.Migrations
                 column: "CreatedByUserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Users_Email",
-                table: "Users",
+                name: "IX_AspNetUsers_Email",
+                table: "AspNetUsers",
                 column: "Email",
                 unique: true);
 
@@ -260,18 +260,18 @@ namespace dotnet_server.Migrations
                 onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_FuelEntries_Users_EnteredByUserId",
+                name: "FK_FuelEntries_AspNetUsers_EnteredByUserId",
                 table: "FuelEntries",
                 column: "EnteredByUserId",
-                principalTable: "Users",
+                principalTable: "AspNetUsers",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_FuelEntries_Users_VerifiedBySupervisorId",
+                name: "FK_FuelEntries_AspNetUsers_VerifiedBySupervisorId",
                 table: "FuelEntries",
                 column: "VerifiedBySupervisorId",
-                principalTable: "Users",
+                principalTable: "AspNetUsers",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
         }
@@ -284,11 +284,11 @@ namespace dotnet_server.Migrations
                 table: "FuelEntries");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_FuelEntries_Users_EnteredByUserId",
+                name: "FK_FuelEntries_AspNetUsers_EnteredByUserId",
                 table: "FuelEntries");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_FuelEntries_Users_VerifiedBySupervisorId",
+                name: "FK_FuelEntries_AspNetUsers_VerifiedBySupervisorId",
                 table: "FuelEntries");
 
             migrationBuilder.DropTable(
@@ -304,7 +304,7 @@ namespace dotnet_server.Migrations
                 name: "NotificationRecipients");
 
             migrationBuilder.DropTable(
-                name: "Users");
+                name: "AspNetUsers");
 
             migrationBuilder.DropIndex(
                 name: "IX_FuelEntries_EnteredByUserId",

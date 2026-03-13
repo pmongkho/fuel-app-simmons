@@ -280,7 +280,7 @@ namespace dotnet_server.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("AspNetUsers");
                 });
 
             modelBuilder.Entity("dotnet_server.Domain.Entities.FuelEntry", b =>

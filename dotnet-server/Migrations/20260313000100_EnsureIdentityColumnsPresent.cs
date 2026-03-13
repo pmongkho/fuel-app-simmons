@@ -9,33 +9,25 @@ namespace dotnet_server.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql("""
-                ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "UserName" text;
-                ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "NormalizedUserName" text;
-                ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "NormalizedEmail" text;
-                ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "EmailConfirmed" boolean NOT NULL DEFAULT FALSE;
-                ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "SecurityStamp" text;
-                ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "ConcurrencyStamp" text;
-                ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "PhoneNumber" text;
-                ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "PhoneNumberConfirmed" boolean NOT NULL DEFAULT FALSE;
-                ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "TwoFactorEnabled" boolean NOT NULL DEFAULT FALSE;
-                ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "LockoutEnd" timestamp with time zone;
-                ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "LockoutEnabled" boolean NOT NULL DEFAULT FALSE;
-                ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "AccessFailedCount" integer NOT NULL DEFAULT 0;
+                ALTER TABLE "AspNetUsers" ADD COLUMN IF NOT EXISTS "FullName" text NOT NULL DEFAULT '';
+                ALTER TABLE "AspNetUsers" ADD COLUMN IF NOT EXISTS "Role" integer NOT NULL DEFAULT 0;
+                ALTER TABLE "AspNetUsers" ADD COLUMN IF NOT EXISTS "IsActive" boolean NOT NULL DEFAULT TRUE;
+                ALTER TABLE "AspNetUsers" ADD COLUMN IF NOT EXISTS "CreatedAtUtc" timestamp with time zone NOT NULL DEFAULT now();
 
-                CREATE UNIQUE INDEX IF NOT EXISTS "IX_Users_NormalizedUserName" ON "Users" ("NormalizedUserName") WHERE "NormalizedUserName" IS NOT NULL;
-                CREATE INDEX IF NOT EXISTS "IX_Users_NormalizedEmail" ON "Users" ("NormalizedEmail");
-
-                UPDATE "Users"
-                SET
-                    "UserName" = COALESCE("UserName", "Email"),
-                    "NormalizedUserName" = COALESCE("NormalizedUserName", UPPER("Email")),
-                    "NormalizedEmail" = COALESCE("NormalizedEmail", UPPER("Email"));
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_AspNetUsers_Email" ON "AspNetUsers" ("Email") WHERE "Email" IS NOT NULL;
                 """);
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // No-op: this migration only ensures required Identity columns/indexes exist.
+            migrationBuilder.Sql("""
+                DROP INDEX IF EXISTS "IX_AspNetUsers_Email";
+
+                ALTER TABLE "AspNetUsers" DROP COLUMN IF EXISTS "CreatedAtUtc";
+                ALTER TABLE "AspNetUsers" DROP COLUMN IF EXISTS "IsActive";
+                ALTER TABLE "AspNetUsers" DROP COLUMN IF EXISTS "Role";
+                ALTER TABLE "AspNetUsers" DROP COLUMN IF EXISTS "FullName";
+                """);
         }
     }
 }
