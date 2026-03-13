@@ -15,10 +15,14 @@ namespace dotnet_server.Api.Controllers;
 public class SupervisorController(AppDbContext dbContext) : ControllerBase
 {
     [HttpGet("entries/pending")]
-    public async Task<IActionResult> Pending([FromQuery] DateOnly? date)
+    public async Task<IActionResult> Pending([FromQuery] string? date)
     {
         var query = dbContext.FuelEntries.Include(x => x.FuelReport).Include(x => x.EnteredByUser).Include(x => x.Trailer).Where(x => x.VerificationStatus == VerificationStatus.Pending);
-        if (date.HasValue) query = query.Where(x => x.FuelReport!.ReportDate == date.Value);
+        if (!string.IsNullOrWhiteSpace(date))
+        {
+            if (!DateOnly.TryParse(date, out var parsedDate)) return BadRequest("Invalid date format. Use yyyy-MM-dd.");
+            query = query.Where(x => x.FuelReport!.ReportDate == parsedDate);
+        }
 
         return Ok(await query.OrderBy(x => x.EnteredAtUtc).Select(x => new
         {

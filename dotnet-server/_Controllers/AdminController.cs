@@ -28,10 +28,14 @@ public class AdminController(AppDbContext dbContext) : ControllerBase
     }
 
     [HttpGet("reports")]
-    public async Task<IActionResult> Reports([FromQuery] DateOnly? date, [FromQuery] string? status)
+    public async Task<IActionResult> Reports([FromQuery] string? date, [FromQuery] string? status)
     {
         var query = dbContext.FuelReports.Include(x => x.CreatedByUser).AsQueryable();
-        if (date.HasValue) query = query.Where(x => x.ReportDate == date.Value);
+        if (!string.IsNullOrWhiteSpace(date))
+        {
+            if (!DateOnly.TryParse(date, out var parsedDate)) return BadRequest("Invalid date format. Use yyyy-MM-dd.");
+            query = query.Where(x => x.ReportDate == parsedDate);
+        }
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<FuelReportStatus>(status, true, out var parsed)) query = query.Where(x => x.Status == parsed);
 
         return Ok(await query.OrderByDescending(x => x.CreatedAtUtc).Select(x => new
