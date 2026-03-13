@@ -2,7 +2,6 @@ using System.Security.Claims;
 using dotnet_server._Data;
 using dotnet_server.Application.DTOs;
 using dotnet_server.Application.Services;
-using dotnet_server.Domain.Entities;
 using dotnet_server.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,7 +14,17 @@ namespace dotnet_server.Api.Controllers;
 [Authorize]
 public class EntriesController(AppDbContext dbContext) : ControllerBase
 {
-    private static readonly HashSet<string> AllowedTrailerTankLevels = ["1/8", "1/4", "3/8", "1/2", "5/8", "3/4", "7/8", "Full"];
+    private async Task<IActionResult?> ValidateAndUpdateTrailerAsync(CreateFuelEntryRequest request)
+    {
+        var trailer = await dbContext.Trailers.FirstOrDefaultAsync(x => x.Id == request.TrailerId && x.IsActive);
+        if (trailer is null) return NotFound("Trailer not found or inactive.");
+
+        trailer.IsTankFull = request.IsTankFull;
+        trailer.HasMechanicalIssues = request.HasMechanicalIssues;
+        trailer.Notes = request.TrailerNotes;
+        trailer.UpdatedAtUtc = DateTime.UtcNow;
+        return null;
+    }
 
     private static bool TankLevelsMatchGallonsPumped(CreateFuelEntryRequest request)
     {
@@ -28,31 +37,27 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
     public async Task<IActionResult> CreateEntry(int reportId, [FromBody] CreateFuelEntryRequest request)
     {
         if (!Enum.TryParse<FuelType>(request.FuelType, true, out var fuelType)) return BadRequest("Invalid fuel type");
-        if (!AllowedTrailerTankLevels.Contains(request.StartGaugeLevel) || !AllowedTrailerTankLevels.Contains(request.EndGaugeLevel))
-            return BadRequest("Trailer tank levels must be one of: 1/8, 1/4, 3/8, 1/2, 5/8, 3/4, 7/8, Full.");
         if (request.FuelingTankLevelStart is < 0 or > 999999 || request.FuelingTankLevelEnd is < 0 or > 999999)
             return BadRequest("Fueling tank levels must be between 0 and 999999.");
         if (!TankLevelsMatchGallonsPumped(request))
             return BadRequest("Fueling tank start and finish must match gallons pumped (start - finish = gallons pumped).");
+
+        var trailerValidationResult = await ValidateAndUpdateTrailerAsync(request);
+        if (trailerValidationResult is not null) return trailerValidationResult;
 
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         var report = await dbContext.FuelReports.Include(x => x.Entries).FirstOrDefaultAsync(x => x.Id == reportId);
         if (report is null) return NotFound();
 
-        var entry = new FuelEntry
+        var entry = new Domain.Entities.FuelEntry
         {
             FuelReportId = reportId,
-            TrailerNumber = request.TrailerNumber,
+            TrailerId = request.TrailerId,
             FuelType = fuelType,
-            StartGaugeLevel = request.StartGaugeLevel,
-            EndGaugeLevel = request.EndGaugeLevel,
-            TrailerLocation = request.TrailerLocation,
             FuelingTankLevelStart = request.FuelingTankLevelStart,
             FuelingTankLevelEnd = request.FuelingTankLevelEnd,
             GallonsPumped = request.GallonsPumped,
-            HasMechanicalIssues = request.HasMechanicalIssues,
-            Notes = request.Notes,
             EnteredByUserId = userId,
             EnteredAtUtc = DateTime.UtcNow
         };
@@ -67,27 +72,23 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
     public async Task<IActionResult> EditEntry(int entryId, [FromBody] CreateFuelEntryRequest request)
     {
         if (!Enum.TryParse<FuelType>(request.FuelType, true, out var fuelType)) return BadRequest("Invalid fuel type");
-        if (!AllowedTrailerTankLevels.Contains(request.StartGaugeLevel) || !AllowedTrailerTankLevels.Contains(request.EndGaugeLevel))
-            return BadRequest("Trailer tank levels must be one of: 1/8, 1/4, 3/8, 1/2, 5/8, 3/4, 7/8, Full.");
         if (request.FuelingTankLevelStart is < 0 or > 999999 || request.FuelingTankLevelEnd is < 0 or > 999999)
             return BadRequest("Fueling tank levels must be between 0 and 999999.");
         if (!TankLevelsMatchGallonsPumped(request))
             return BadRequest("Fueling tank start and finish must match gallons pumped (start - finish = gallons pumped).");
 
+        var trailerValidationResult = await ValidateAndUpdateTrailerAsync(request);
+        if (trailerValidationResult is not null) return trailerValidationResult;
+
         var entry = await dbContext.FuelEntries.Include(x => x.FuelReport).ThenInclude(r => r!.Entries).FirstOrDefaultAsync(x => x.Id == entryId);
         if (entry is null) return NotFound();
         if (entry.VerificationStatus == VerificationStatus.Approved && !User.IsInRole(nameof(UserRole.Admin))) return BadRequest("Approved entries cannot be edited");
 
-        entry.TrailerNumber = request.TrailerNumber;
+        entry.TrailerId = request.TrailerId;
         entry.FuelType = fuelType;
-        entry.StartGaugeLevel = request.StartGaugeLevel;
-        entry.EndGaugeLevel = request.EndGaugeLevel;
-        entry.TrailerLocation = request.TrailerLocation;
         entry.FuelingTankLevelStart = request.FuelingTankLevelStart;
         entry.FuelingTankLevelEnd = request.FuelingTankLevelEnd;
         entry.GallonsPumped = request.GallonsPumped;
-        entry.HasMechanicalIssues = request.HasMechanicalIssues;
-        entry.Notes = request.Notes;
 
         ReportTotalsService.Recalculate(entry.FuelReport!);
         await dbContext.SaveChangesAsync();
@@ -110,7 +111,7 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
     [HttpGet("entries/{entryId:int}")]
     public async Task<IActionResult> GetEntry(int entryId)
     {
-        var entry = await dbContext.FuelEntries.Include(x => x.Photos).FirstOrDefaultAsync(x => x.Id == entryId);
+        var entry = await dbContext.FuelEntries.Include(x => x.Photos).Include(x => x.Trailer).FirstOrDefaultAsync(x => x.Id == entryId);
         return entry is null ? NotFound() : Ok(entry);
     }
 
@@ -128,7 +129,7 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
         await using var stream = System.IO.File.Create(fullPath);
         await file.CopyToAsync(stream);
 
-        var photo = new FuelEntryPhoto
+        var photo = new Domain.Entities.FuelEntryPhoto
         {
             FuelEntryId = entryId,
             PhotoType = parsedType,

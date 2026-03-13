@@ -10,6 +10,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<FuelReport> FuelReports => Set<FuelReport>();
     public DbSet<FuelEntry> FuelEntries => Set<FuelEntry>();
     public DbSet<FuelEntryPhoto> FuelEntryPhotos => Set<FuelEntryPhoto>();
+    public DbSet<Trailer> Trailers => Set<Trailer>();
     public DbSet<NotificationRecipient> NotificationRecipients => Set<NotificationRecipient>();
     public DbSet<EmailLog> EmailLogs => Set<EmailLog>();
 
@@ -27,6 +28,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             .WithMany()
             .HasForeignKey(x => x.CreatedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+
+        modelBuilder.Entity<Trailer>()
+            .HasIndex(x => x.TrailerNumber)
+            .IsUnique();
 
         modelBuilder.Entity<FuelEntry>()
             .HasOne(x => x.EnteredByUser)
@@ -51,5 +57,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             .WithMany(x => x.Photos)
             .HasForeignKey(x => x.FuelEntryId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<FuelEntry>()
+            .HasOne(x => x.Trailer)
+            .WithMany(x => x.FuelEntries)
+            .HasForeignKey(x => x.TrailerId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

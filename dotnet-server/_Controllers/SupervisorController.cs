@@ -17,7 +17,7 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
     [HttpGet("entries/pending")]
     public async Task<IActionResult> Pending([FromQuery] DateOnly? date)
     {
-        var query = dbContext.FuelEntries.Include(x => x.FuelReport).Include(x => x.EnteredByUser).Where(x => x.VerificationStatus == VerificationStatus.Pending);
+        var query = dbContext.FuelEntries.Include(x => x.FuelReport).Include(x => x.EnteredByUser).Include(x => x.Trailer).Where(x => x.VerificationStatus == VerificationStatus.Pending);
         if (date.HasValue) query = query.Where(x => x.FuelReport!.ReportDate == date.Value);
 
         return Ok(await query.OrderBy(x => x.EnteredAtUtc).Select(x => new
@@ -25,7 +25,7 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
             x.Id,
             reportDate = x.FuelReport!.ReportDate,
             employee = x.EnteredByUser!.FullName,
-            x.TrailerNumber,
+            trailerNumber = x.Trailer != null ? x.Trailer.TrailerNumber : string.Empty,
             fuelType = x.FuelType.ToString(),
             x.GallonsPumped,
             submittedTime = x.EnteredAtUtc,
