@@ -5,9 +5,13 @@ import { FormsModule } from '@angular/forms';
 interface Entry {
   trailerNumber: string;
   fuelType: 'RedDiesel' | 'ClearDiesel' | 'Def';
+  trailerLocation: 'Main' | 'Flex';
   startGaugeLevel: string;
   endGaugeLevel: string;
-  gallonsPumped: number;
+  fuelingTankLevelStart: number | null;
+  fuelingTankLevelEnd: number | null;
+  gallonsPumped: number | null;
+  hasMechanicalIssues: boolean;
   notes: string;
   verificationStatus: string;
 }
@@ -21,29 +25,56 @@ interface Entry {
 })
 export class ReportsNewComponent {
   reportDate = new Date().toISOString().slice(0, 10);
-  expectations = '';
-  trailersOnYard = '';
-  mechanicalIssues = '';
+  reportLocation: 'Main' | 'Flex' = 'Main';
 
   entry: Entry = {
     trailerNumber: '',
     fuelType: 'RedDiesel',
-    startGaugeLevel: '',
-    endGaugeLevel: '',
-    gallonsPumped: 0,
+    trailerLocation: 'Main',
+    startGaugeLevel: '1/8',
+    endGaugeLevel: '1/8',
+    fuelingTankLevelStart: null,
+    fuelingTankLevelEnd: null,
+    gallonsPumped: null,
+    hasMechanicalIssues: false,
     notes: '',
     verificationStatus: 'Pending',
   };
 
   entries = signal<Entry[]>([]);
-  redTotal = computed(() => this.entries().filter((x) => x.fuelType === 'RedDiesel').reduce((a, b) => a + b.gallonsPumped, 0));
-  clearTotal = computed(() => this.entries().filter((x) => x.fuelType === 'ClearDiesel').reduce((a, b) => a + b.gallonsPumped, 0));
-  defTotal = computed(() => this.entries().filter((x) => x.fuelType === 'Def').reduce((a, b) => a + b.gallonsPumped, 0));
+  redTotal = computed(() => this.entries().filter((x) => x.fuelType === 'RedDiesel').reduce((a, b) => a + (b.gallonsPumped ?? 0), 0));
+  clearTotal = computed(() => this.entries().filter((x) => x.fuelType === 'ClearDiesel').reduce((a, b) => a + (b.gallonsPumped ?? 0), 0));
+  defTotal = computed(() => this.entries().filter((x) => x.fuelType === 'Def').reduce((a, b) => a + (b.gallonsPumped ?? 0), 0));
   overallTotal = computed(() => this.redTotal() + this.clearTotal() + this.defTotal());
 
+  private fuelingLevelsMatchGallons(entry: Entry): boolean {
+    if (entry.fuelingTankLevelStart === null || entry.fuelingTankLevelEnd === null || entry.gallonsPumped === null) {
+      return false;
+    }
+
+    return Math.abs(entry.fuelingTankLevelStart - entry.fuelingTankLevelEnd) === entry.gallonsPumped;
+  }
+
   saveEntry() {
+    if (!this.fuelingLevelsMatchGallons(this.entry)) {
+      window.alert('Fueling tank start/finish difference must match gallons pumped (absolute difference).');
+      return;
+    }
+
     this.entries.set([...this.entries(), { ...this.entry }]);
-    this.entry = { trailerNumber: '', fuelType: 'RedDiesel', startGaugeLevel: '', endGaugeLevel: '', gallonsPumped: 0, notes: '', verificationStatus: 'Pending' };
+    this.entry = {
+      trailerNumber: '',
+      fuelType: 'RedDiesel',
+      trailerLocation: 'Main',
+      startGaugeLevel: '1/8',
+      endGaugeLevel: '1/8',
+      fuelingTankLevelStart: null,
+      fuelingTankLevelEnd: null,
+      gallonsPumped: null,
+      hasMechanicalIssues: false,
+      notes: '',
+      verificationStatus: 'Pending',
+    };
   }
 
   deleteEntry(index: number) {
