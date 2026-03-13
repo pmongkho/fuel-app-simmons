@@ -48,7 +48,45 @@ public class AdminController(AppDbContext dbContext) : ControllerBase
     [HttpGet("reports/{reportId:int}")]
     public async Task<IActionResult> Report(int reportId)
     {
-        var report = await dbContext.FuelReports.Include(x => x.CreatedByUser).Include(x => x.Entries).ThenInclude(e => e.Photos).FirstOrDefaultAsync(x => x.Id == reportId);
-        return report is null ? NotFound() : Ok(report);
+        var report = await dbContext.FuelReports
+            .Include(x => x.CreatedByUser)
+            .Include(x => x.Entries)
+            .ThenInclude(e => e.Photos)
+            .Include(x => x.Entries)
+            .ThenInclude(e => e.EnteredByUser)
+            .Include(x => x.Entries)
+            .ThenInclude(e => e.Trailer)
+            .FirstOrDefaultAsync(x => x.Id == reportId);
+
+        if (report is null) return NotFound();
+
+        return Ok(new
+        {
+            report.Id,
+            report.ReportDate,
+            createdBy = report.CreatedByUser!.FullName,
+            status = report.Status.ToString(),
+            report.TotalRedDiesel,
+            report.TotalClearDiesel,
+            report.TotalDef,
+            report.OverallTotalGallons,
+            report.CreatedAtUtc,
+            report.SubmittedAtUtc,
+            entries = report.Entries
+                .OrderBy(x => x.EnteredAtUtc)
+                .Select(x => new
+                {
+                    x.Id,
+                    fuelType = x.FuelType.ToString(),
+                    x.GallonsPumped,
+                    x.FuelingTankLevelStart,
+                    x.FuelingTankLevelEnd,
+                    verificationStatus = x.VerificationStatus.ToString(),
+                    x.EnteredAtUtc,
+                    enteredBy = x.EnteredByUser != null ? x.EnteredByUser.FullName : string.Empty,
+                    trailerNumber = x.Trailer != null ? x.Trailer.TrailerNumber : string.Empty,
+                    photoCount = x.Photos.Count
+                })
+        });
     }
 }

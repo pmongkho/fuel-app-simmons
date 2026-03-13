@@ -30,13 +30,13 @@ interface FuelReportDetail {
 }
 
 @Component({
-  selector: 'app-admin-report-detail',
+  selector: 'app-supervisor-report-detail',
   standalone: true,
   imports: [NgIf, NgFor, RouterLink, DatePipe],
-  templateUrl: './admin-report-detail.component.html',
-  styleUrl: './admin-report-detail.component.css',
+  templateUrl: './supervisor-report-detail.component.html',
+  styleUrl: './supervisor-report-detail.component.css',
 })
-export class AdminReportDetailComponent implements OnInit {
+export class SupervisorReportDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly http = inject(HttpClient);
 
@@ -48,7 +48,7 @@ export class AdminReportDetailComponent implements OnInit {
       return;
     }
 
-    this.http.get<FuelReportDetail>(`/api/admin/reports/${reportId}`).subscribe((report) => {
+    this.http.get<FuelReportDetail>(`/api/supervisor/reports/${reportId}`).subscribe((report) => {
       this.report = report;
     });
   }

@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 
 type SupervisorEntry = {
   id: number;
+  reportId: number;
   reportDate: string;
   employee: string;
   trailerNumber: string;
@@ -25,6 +26,7 @@ export class SupervisorEntriesComponent {
   readonly entries: SupervisorEntry[] = [
     {
       id: 1,
+      reportId: 1001,
       reportDate: '2026-03-11',
       employee: 'Employee One',
       trailerNumber: '873423',
@@ -36,6 +38,7 @@ export class SupervisorEntriesComponent {
     },
     {
       id: 2,
+      reportId: 1001,
       reportDate: '2026-03-11',
       employee: 'Employee Two',
       trailerNumber: '981200',
@@ -47,6 +50,7 @@ export class SupervisorEntriesComponent {
     },
     {
       id: 3,
+      reportId: 1000,
       reportDate: '2026-03-10',
       employee: 'Employee Three',
       trailerNumber: '655003',
@@ -73,4 +77,3 @@ export class SupervisorEntriesComponent {
     return 'bg-amber-100 text-amber-700';
   }
 }
-
