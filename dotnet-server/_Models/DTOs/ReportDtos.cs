@@ -8,16 +8,14 @@ public class CreateReportRequest
 
 public class CreateFuelEntryRequest
 {
-    public string TrailerNumber { get; set; } = string.Empty;
+    public int TrailerId { get; set; }
+    public bool IsTankFull { get; set; }
+    public bool HasMechanicalIssues { get; set; }
+    public string? TrailerNotes { get; set; }
     public string FuelType { get; set; } = string.Empty;
-    public string StartGaugeLevel { get; set; } = string.Empty;
-    public string EndGaugeLevel { get; set; } = string.Empty;
-    public string TrailerLocation { get; set; } = "Main";
     public int? FuelingTankLevelStart { get; set; }
     public int? FuelingTankLevelEnd { get; set; }
     public decimal GallonsPumped { get; set; }
-    public bool HasMechanicalIssues { get; set; }
-    public string? Notes { get; set; }
 }
 
 public class ApproveEntryRequest
