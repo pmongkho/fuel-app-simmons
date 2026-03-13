@@ -24,7 +24,6 @@ public class ReportsController(AppDbContext dbContext, EmailService emailService
         {
             ReportDate = DateOnly.FromDateTime(request.ReportDate),
             CreatedByUserId = userId,
-            ReportLocation = request.ReportLocation,
             CreatedAtUtc = DateTime.UtcNow
         };
         dbContext.FuelReports.Add(report);
@@ -55,7 +54,6 @@ public class ReportsController(AppDbContext dbContext, EmailService emailService
         var report = await dbContext.FuelReports.FindAsync(id);
         if (report is null) return NotFound();
         report.ReportDate = DateOnly.FromDateTime(request.ReportDate);
-        report.ReportLocation = request.ReportLocation;
         await dbContext.SaveChangesAsync();
         return Ok();
     }

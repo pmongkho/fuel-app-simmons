@@ -24,7 +24,6 @@ interface Entry {
 })
 export class ReportsNewComponent {
   reportDate = new Date().toISOString().slice(0, 10);
-  reportLocation: 'Main' | 'Flex' = 'Main';
 
   entry: Entry = {
     trailerNumber: '',
@@ -50,7 +49,7 @@ export class ReportsNewComponent {
       return false;
     }
 
-    return entry.fuelingTankLevelStart - entry.fuelingTankLevelEnd === entry.gallonsPumped;
+    return entry.fuelingTankLevelEnd - entry.fuelingTankLevelStart === entry.gallonsPumped;
   }
 
   saveEntry() {

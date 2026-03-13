@@ -8,7 +8,6 @@ public class FuelReport
     public DateOnly ReportDate { get; set; }
     public int CreatedByUserId { get; set; }
     public User? CreatedByUser { get; set; }
-    public string? ReportLocation { get; set; }
     public FuelReportStatus Status { get; set; } = FuelReportStatus.Draft;
     public decimal TotalRedDiesel { get; set; }
     public decimal TotalClearDiesel { get; set; }

@@ -95,6 +95,25 @@ namespace dotnet_server.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Trailers",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    TrailerNumber = table.Column<string>(type: "text", nullable: false),
+                    Location = table.Column<string>(type: "text", nullable: false),
+                    IsTankFull = table.Column<bool>(type: "boolean", nullable: false),
+                    HasMechanicalIssues = table.Column<bool>(type: "boolean", nullable: false),
+                    Notes = table.Column<string>(type: "text", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    UpdatedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Trailers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "AspNetRoleClaims",
                 columns: table => new
                 {
@@ -208,9 +227,6 @@ namespace dotnet_server.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ReportDate = table.Column<DateOnly>(type: "date", nullable: false),
                     CreatedByUserId = table.Column<int>(type: "integer", nullable: false),
-                    Expectations = table.Column<string>(type: "text", nullable: true),
-                    TrailersOnYard = table.Column<string>(type: "text", nullable: true),
-                    MechanicalIssues = table.Column<string>(type: "text", nullable: true),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     TotalRedDiesel = table.Column<decimal>(type: "numeric", nullable: false),
                     TotalClearDiesel = table.Column<decimal>(type: "numeric", nullable: false),
@@ -237,12 +253,11 @@ namespace dotnet_server.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     FuelReportId = table.Column<int>(type: "integer", nullable: false),
-                    TrailerNumber = table.Column<string>(type: "text", nullable: false),
+                    TrailerId = table.Column<int>(type: "integer", nullable: true),
                     FuelType = table.Column<int>(type: "integer", nullable: false),
-                    StartGaugeLevel = table.Column<string>(type: "text", nullable: false),
-                    EndGaugeLevel = table.Column<string>(type: "text", nullable: false),
+                    FuelingTankLevelStart = table.Column<int>(type: "integer", nullable: true),
+                    FuelingTankLevelEnd = table.Column<int>(type: "integer", nullable: true),
                     GallonsPumped = table.Column<decimal>(type: "numeric", nullable: false),
-                    Notes = table.Column<string>(type: "text", nullable: true),
                     EnteredByUserId = table.Column<int>(type: "integer", nullable: false),
                     EnteredAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     VerificationStatus = table.Column<int>(type: "integer", nullable: false),
@@ -272,6 +287,12 @@ namespace dotnet_server.Migrations
                         principalTable: "FuelReports",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_FuelEntries_Trailers_TrailerId",
+                        column: x => x.TrailerId,
+                        principalTable: "Trailers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -352,6 +373,11 @@ namespace dotnet_server.Migrations
                 column: "FuelReportId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_FuelEntries_TrailerId",
+                table: "FuelEntries",
+                column: "TrailerId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_FuelEntries_VerifiedBySupervisorId",
                 table: "FuelEntries",
                 column: "VerifiedBySupervisorId");
@@ -365,6 +391,12 @@ namespace dotnet_server.Migrations
                 name: "IX_FuelReports_CreatedByUserId",
                 table: "FuelReports",
                 column: "CreatedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Trailers_TrailerNumber",
+                table: "Trailers",
+                column: "TrailerNumber",
+                unique: true);
         }
 
         /// <inheritdoc />
@@ -402,6 +434,9 @@ namespace dotnet_server.Migrations
 
             migrationBuilder.DropTable(
                 name: "FuelReports");
+
+            migrationBuilder.DropTable(
+                name: "Trailers");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");

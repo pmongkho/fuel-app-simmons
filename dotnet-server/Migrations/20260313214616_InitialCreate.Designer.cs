@@ -12,7 +12,7 @@ using dotnet_server._Data;
 namespace dotnet_server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260313173157_InitialCreate")]
+    [Migration("20260313214616_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -205,10 +205,6 @@ namespace dotnet_server.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("EndGaugeLevel")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<DateTime>("EnteredAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -221,25 +217,23 @@ namespace dotnet_server.Migrations
                     b.Property<int>("FuelType")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("FuelingTankLevelEnd")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("FuelingTankLevelStart")
+                        .HasColumnType("integer");
+
                     b.Property<decimal>("GallonsPumped")
                         .HasColumnType("numeric");
 
-                    b.Property<string>("Notes")
-                        .HasColumnType("text");
-
                     b.Property<string>("RejectionReason")
-                        .HasColumnType("text");
-
-                    b.Property<string>("StartGaugeLevel")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("SupervisorSignatureName")
                         .HasColumnType("text");
 
-                    b.Property<string>("TrailerNumber")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int?>("TrailerId")
+                        .HasColumnType("integer");
 
                     b.Property<int>("VerificationStatus")
                         .HasColumnType("integer");
@@ -255,6 +249,8 @@ namespace dotnet_server.Migrations
                     b.HasIndex("EnteredByUserId");
 
                     b.HasIndex("FuelReportId");
+
+                    b.HasIndex("TrailerId");
 
                     b.HasIndex("VerifiedBySupervisorId");
 
@@ -311,12 +307,6 @@ namespace dotnet_server.Migrations
                     b.Property<int>("CreatedByUserId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Expectations")
-                        .HasColumnType("text");
-
-                    b.Property<string>("MechanicalIssues")
-                        .HasColumnType("text");
-
                     b.Property<decimal>("OverallTotalGallons")
                         .HasColumnType("numeric");
 
@@ -337,9 +327,6 @@ namespace dotnet_server.Migrations
 
                     b.Property<decimal>("TotalRedDiesel")
                         .HasColumnType("numeric");
-
-                    b.Property<string>("TrailersOnYard")
-                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -376,6 +363,45 @@ namespace dotnet_server.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("NotificationRecipients");
+                });
+
+            modelBuilder.Entity("dotnet_server.Domain.Entities.Trailer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("HasMechanicalIssues")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsTankFull")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TrailerNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TrailerNumber")
+                        .IsUnique();
+
+                    b.ToTable("Trailers");
                 });
 
             modelBuilder.Entity("dotnet_server.Domain.Entities.User", b =>
@@ -526,6 +552,11 @@ namespace dotnet_server.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("dotnet_server.Domain.Entities.Trailer", "Trailer")
+                        .WithMany("FuelEntries")
+                        .HasForeignKey("TrailerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("dotnet_server.Domain.Entities.User", "VerifiedBySupervisor")
                         .WithMany()
                         .HasForeignKey("VerifiedBySupervisorId")
@@ -534,6 +565,8 @@ namespace dotnet_server.Migrations
                     b.Navigation("EnteredByUser");
 
                     b.Navigation("FuelReport");
+
+                    b.Navigation("Trailer");
 
                     b.Navigation("VerifiedBySupervisor");
                 });
@@ -568,6 +601,11 @@ namespace dotnet_server.Migrations
             modelBuilder.Entity("dotnet_server.Domain.Entities.FuelReport", b =>
                 {
                     b.Navigation("Entries");
+                });
+
+            modelBuilder.Entity("dotnet_server.Domain.Entities.Trailer", b =>
+                {
+                    b.Navigation("FuelEntries");
                 });
 #pragma warning restore 612, 618
         }

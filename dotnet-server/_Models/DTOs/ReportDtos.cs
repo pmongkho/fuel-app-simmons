@@ -3,7 +3,6 @@ namespace dotnet_server.Application.DTOs;
 public class CreateReportRequest
 {
     public DateTime ReportDate { get; set; }
-    public string? ReportLocation { get; set; }
 }
 
 public class CreateFuelEntryRequest
