@@ -8,28 +8,12 @@ namespace dotnet_server.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql("""
-                DO $$
-                BEGIN
-                    IF to_regclass('public."Users"') IS NOT NULL
-                       AND to_regclass('public."AspNetUsers"') IS NULL THEN
-                        ALTER TABLE "Users" RENAME TO "AspNetUsers";
-                    END IF;
-                END $$;
-                """);
+            // No-op: keep Identity-managed AspNetUsers as the source of truth.
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql("""
-                DO $$
-                BEGIN
-                    IF to_regclass('public."AspNetUsers"') IS NOT NULL
-                       AND to_regclass('public."Users"') IS NULL THEN
-                        ALTER TABLE "AspNetUsers" RENAME TO "Users";
-                    END IF;
-                END $$;
-                """);
+            // No-op
         }
     }
 }
