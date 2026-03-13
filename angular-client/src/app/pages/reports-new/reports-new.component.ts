@@ -45,4 +45,8 @@ export class ReportsNewComponent {
     this.entries.set([...this.entries(), { ...this.entry }]);
     this.entry = { trailerNumber: '', fuelType: 'RedDiesel', startGaugeLevel: '', endGaugeLevel: '', gallonsPumped: 0, notes: '', verificationStatus: 'Pending' };
   }
+
+  deleteEntry(index: number) {
+    this.entries.update((entries) => entries.filter((_, entryIndex) => entryIndex !== index));
+  }
 }
