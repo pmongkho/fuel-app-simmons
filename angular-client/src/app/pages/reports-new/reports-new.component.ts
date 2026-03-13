@@ -52,12 +52,12 @@ export class ReportsNewComponent {
       return false;
     }
 
-    return Math.abs(entry.fuelingTankLevelStart - entry.fuelingTankLevelEnd) === entry.gallonsPumped;
+    return entry.fuelingTankLevelStart - entry.fuelingTankLevelEnd === entry.gallonsPumped;
   }
 
   saveEntry() {
     if (!this.fuelingLevelsMatchGallons(this.entry)) {
-      window.alert('Fueling tank start/finish difference must match gallons pumped (absolute difference).');
+      window.alert('Fueling tank start and finish must match gallons pumped (start - finish = gallons pumped).');
       return;
     }
 

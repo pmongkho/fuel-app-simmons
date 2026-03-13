@@ -20,7 +20,7 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
     private static bool TankLevelsMatchGallonsPumped(CreateFuelEntryRequest request)
     {
         if (request.FuelingTankLevelStart is null || request.FuelingTankLevelEnd is null) return false;
-        var expectedGallons = Math.Abs(request.FuelingTankLevelStart.Value - request.FuelingTankLevelEnd.Value);
+        var expectedGallons = request.FuelingTankLevelStart.Value - request.FuelingTankLevelEnd.Value;
         return expectedGallons == request.GallonsPumped;
     }
 
@@ -33,7 +33,7 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
         if (request.FuelingTankLevelStart is < 0 or > 999999 || request.FuelingTankLevelEnd is < 0 or > 999999)
             return BadRequest("Fueling tank levels must be between 0 and 999999.");
         if (!TankLevelsMatchGallonsPumped(request))
-            return BadRequest("Fueling tank start/finish difference must match gallons pumped (absolute difference).");
+            return BadRequest("Fueling tank start and finish must match gallons pumped (start - finish = gallons pumped).");
 
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -72,7 +72,7 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
         if (request.FuelingTankLevelStart is < 0 or > 999999 || request.FuelingTankLevelEnd is < 0 or > 999999)
             return BadRequest("Fueling tank levels must be between 0 and 999999.");
         if (!TankLevelsMatchGallonsPumped(request))
-            return BadRequest("Fueling tank start/finish difference must match gallons pumped (absolute difference).");
+            return BadRequest("Fueling tank start and finish must match gallons pumped (start - finish = gallons pumped).");
 
         var entry = await dbContext.FuelEntries.Include(x => x.FuelReport).ThenInclude(r => r!.Entries).FirstOrDefaultAsync(x => x.Id == entryId);
         if (entry is null) return NotFound();
