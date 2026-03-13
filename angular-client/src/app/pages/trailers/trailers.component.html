@@ -1,0 +1,43 @@
+<section class="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+  <div>
+    <h2 class="text-2xl font-semibold">Trailers</h2>
+    <p class="mt-1 text-sm text-slate-600">Current trailer rows and details.</p>
+  </div>
+
+  @if (loading()) {
+    <p class="text-sm text-slate-600">Loading trailers...</p>
+  } @else if (trailers().length === 0) {
+    <p class="text-sm text-slate-600">No trailers found.</p>
+  } @else {
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-left text-sm">
+        <thead class="border-y border-slate-200 bg-slate-50 text-slate-600">
+          <tr>
+            <th class="px-3 py-2 font-medium">Trailer #</th>
+            <th class="px-3 py-2 font-medium">Location</th>
+            <th class="px-3 py-2 font-medium">Tank</th>
+            <th class="px-3 py-2 font-medium">Mechanical</th>
+            <th class="px-3 py-2 font-medium">Status</th>
+            <th class="px-3 py-2 font-medium">Updated</th>
+            <th class="px-3 py-2 font-medium">Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let trailer of trailers()" class="border-b border-slate-100 align-top">
+            <td class="px-3 py-2 font-medium text-slate-900">{{ trailer.trailerNumber }}</td>
+            <td class="px-3 py-2">{{ trailer.location }}</td>
+            <td class="px-3 py-2">{{ trailer.isTankFull ? 'Full' : 'Not full' }}</td>
+            <td class="px-3 py-2">
+              <span [ngClass]="trailer.hasMechanicalIssues ? 'text-rose-700' : 'text-emerald-700'">
+                {{ trailer.hasMechanicalIssues ? 'Issues reported' : 'OK' }}
+              </span>
+            </td>
+            <td class="px-3 py-2">{{ trailer.isActive ? 'Active' : 'Inactive' }}</td>
+            <td class="px-3 py-2">{{ trailer.updatedAtUtc | date: 'short' }}</td>
+            <td class="px-3 py-2">{{ trailer.notes || '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

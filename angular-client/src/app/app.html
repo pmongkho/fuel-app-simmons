@@ -19,6 +19,15 @@
           >
         }
 
+        @if (canAccessTrailers()) {
+          <a
+            routerLink="/trailers"
+            routerLinkActive="bg-sky-100 text-sky-700"
+            class="rounded-md px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100"
+            >Trailers</a
+          >
+        }
+
         @if (canAccessSupervisor()) {
           <a
             routerLink="/supervisor/entries"

@@ -2,6 +2,7 @@ import { DatePipe, NgFor, NgIf } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { AuthService } from '../../core/auth.service';
 
 interface FuelEntryDetail {
   id: number;
@@ -39,6 +40,7 @@ interface FuelReportDetail {
 export class SupervisorReportDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
 
   report: FuelReportDetail | null = null;
 
@@ -48,8 +50,10 @@ export class SupervisorReportDetailComponent implements OnInit {
       return;
     }
 
-    this.http.get<FuelReportDetail>(`/api/supervisor/reports/${reportId}`).subscribe((report) => {
-      this.report = report;
-    });
+    this.http
+      .get<FuelReportDetail>(`http://localhost:5152/api/supervisor/reports/${reportId}`, { headers: this.auth.authHeaders() })
+      .subscribe((report) => {
+        this.report = report;
+      });
   }
 }
