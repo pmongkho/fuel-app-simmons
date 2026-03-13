@@ -6,32 +6,8 @@ import { AuthService } from './core/auth.service';
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
-  template: `
-    <div class="min-h-screen bg-slate-100 text-slate-900">
-      <header class="border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div class="mx-auto flex w-full max-w-5xl items-center gap-3 px-4 py-3 sm:px-6">
-          <div class="rounded-md bg-sky-600 px-2 py-1 text-xs font-semibold text-white">Fuel</div>
-          <h1 class="text-base font-semibold sm:text-lg">Fuel Report App</h1>
-          <nav class="ml-auto hidden gap-2 sm:flex">
-            <a routerLink="/reports/new" routerLinkActive="bg-sky-100 text-sky-700" class="rounded-md px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100">Entry</a>
-            <a routerLink="/admin/dashboard" routerLinkActive="bg-sky-100 text-sky-700" class="rounded-md px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100">Admin</a>
-            <a routerLink="/supervisor/entries" routerLinkActive="bg-sky-100 text-sky-700" class="rounded-md px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100">Supervisor</a>
-          </nav>
-          @if (showLogout()) {
-            <button (click)="logout()" class="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100">Logout</button>
-          }
-        </div>
-      </header>
-
-      <main class="mx-auto w-full max-w-5xl px-4 py-4 sm:px-6 sm:py-6">
-        <router-outlet />
-      </main>
-
-      <footer class="border-t border-slate-200 bg-white">
-        <p class="mx-auto w-full max-w-5xl px-4 py-3 text-center text-xs text-slate-500 sm:px-6">© 2026 Fuel Report App</p>
-      </footer>
-    </div>
-  `,
+  templateUrl: './app.html',
+  styleUrl: './app.css',
 })
 export class App {
   private readonly auth = inject(AuthService);
