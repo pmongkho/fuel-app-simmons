@@ -11,7 +11,11 @@ public class FuelEntry
     public FuelType FuelType { get; set; }
     public string StartGaugeLevel { get; set; } = string.Empty;
     public string EndGaugeLevel { get; set; } = string.Empty;
+    public string TrailerLocation { get; set; } = "Main";
+    public int? FuelingTankLevelStart { get; set; }
+    public int? FuelingTankLevelEnd { get; set; }
     public decimal GallonsPumped { get; set; }
+    public bool HasMechanicalIssues { get; set; }
     public string? Notes { get; set; }
     public int EnteredByUserId { get; set; }
     public User? EnteredByUser { get; set; }
