@@ -9,11 +9,13 @@ import { AdminUsersComponent } from './pages/admin-users/admin-users.component';
 import { AdminReportDetailComponent } from './pages/admin-report-detail/admin-report-detail.component';
 import { authGuard, roleGuard } from './core/auth.guards';
 import { ReportsMineComponent } from './pages/reports-mine/reports-mine.component';
+import { TrailersComponent } from './pages/trailers/trailers.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
-  { path: 'reports/new', component: ReportsNewComponent, canActivate: [authGuard, roleGuard(['Employee', 'Supervisor', 'Admin'])] },
-  { path: 'reports/mine', component: ReportsMineComponent, canActivate: [authGuard, roleGuard(['Employee', 'Supervisor', 'Admin'])] },
+  { path: 'reports/new', component: ReportsNewComponent, canActivate: [authGuard, roleGuard(['Employee', 'Admin'])] },
+  { path: 'reports/mine', component: ReportsMineComponent, canActivate: [authGuard, roleGuard(['Employee', 'Admin'])] },
+  { path: 'trailers', component: TrailersComponent, canActivate: [authGuard, roleGuard(['Employee', 'Supervisor', 'Admin'])] },
   { path: 'supervisor/entries', component: SupervisorEntriesComponent, canActivate: [authGuard, roleGuard(['Supervisor', 'Admin'])] },
   { path: 'supervisor/entries/:entryId', component: SupervisorEntryDetailComponent, canActivate: [authGuard, roleGuard(['Supervisor', 'Admin'])] },
   { path: 'supervisor/reports/:reportId', component: SupervisorReportDetailComponent, canActivate: [authGuard, roleGuard(['Supervisor', 'Admin'])] },
