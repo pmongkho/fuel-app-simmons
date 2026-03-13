@@ -17,6 +17,7 @@ interface Entry {
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './reports-new.component.html',
+  styleUrl: './reports-new.component.css',
 })
 export class ReportsNewComponent {
   reportDate = new Date().toISOString().slice(0, 10);
