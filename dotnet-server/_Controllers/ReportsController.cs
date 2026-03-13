@@ -15,11 +15,29 @@ namespace dotnet_server.Api.Controllers;
 [Authorize]
 public class ReportsController(AppDbContext dbContext, EmailService emailService) : ControllerBase
 {
+    private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+    private bool CanAccessAllReports() =>
+        User.IsInRole(nameof(UserRole.Admin)) || User.IsInRole(nameof(UserRole.Supervisor));
+
+    private async Task<FuelReport?> FindAccessibleReportAsync(int id)
+    {
+        var report = await dbContext.FuelReports
+            .Include(x => x.Entries)
+            .ThenInclude(e => e.Photos)
+            .FirstOrDefaultAsync(x => x.Id == id);
+
+        if (report is null) return null;
+        if (CanAccessAllReports() || report.CreatedByUserId == CurrentUserId) return report;
+
+        return null;
+    }
+
     [HttpPost]
-    [Authorize(Roles = $"{nameof(UserRole.Employee)},{nameof(UserRole.Admin)}")]
+    [Authorize(Roles = $"{nameof(UserRole.Employee)},{nameof(UserRole.Supervisor)},{nameof(UserRole.Admin)}")]
     public async Task<IActionResult> Create([FromBody] CreateReportRequest request)
     {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var userId = CurrentUserId;
         var report = new FuelReport
         {
             ReportDate = DateOnly.FromDateTime(request.ReportDate),
@@ -34,18 +52,45 @@ public class ReportsController(AppDbContext dbContext, EmailService emailService
     [HttpGet("{id:int}")]
     public async Task<IActionResult> Get(int id)
     {
-        var report = await dbContext.FuelReports
-            .Include(x => x.Entries).ThenInclude(e => e.Photos)
-            .FirstOrDefaultAsync(x => x.Id == id);
+        var report = await FindAccessibleReportAsync(id);
         return report is null ? NotFound() : Ok(report);
     }
 
     [HttpGet("mine")]
-    [Authorize(Roles = nameof(UserRole.Employee))]
     public async Task<IActionResult> Mine()
     {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        return Ok(await dbContext.FuelReports.Where(x => x.CreatedByUserId == userId).OrderByDescending(x => x.CreatedAtUtc).ToListAsync());
+        if (CanAccessAllReports())
+        {
+            return Ok(await dbContext.FuelReports
+                .Include(x => x.CreatedByUser)
+                .OrderByDescending(x => x.CreatedAtUtc)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.ReportDate,
+                    createdBy = x.CreatedByUser != null ? x.CreatedByUser.FullName : string.Empty,
+                    status = x.Status.ToString(),
+                    x.OverallTotalGallons,
+                    x.CreatedAtUtc,
+                    x.SubmittedAtUtc
+                })
+                .ToListAsync());
+        }
+
+        var userId = CurrentUserId;
+        return Ok(await dbContext.FuelReports
+            .Where(x => x.CreatedByUserId == userId)
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .Select(x => new
+            {
+                x.Id,
+                x.ReportDate,
+                status = x.Status.ToString(),
+                x.OverallTotalGallons,
+                x.CreatedAtUtc,
+                x.SubmittedAtUtc
+            })
+            .ToListAsync());
     }
 
     [HttpPut("{id:int}")]
@@ -53,6 +98,8 @@ public class ReportsController(AppDbContext dbContext, EmailService emailService
     {
         var report = await dbContext.FuelReports.FindAsync(id);
         if (report is null) return NotFound();
+        if (!CanAccessAllReports() && report.CreatedByUserId != CurrentUserId) return Forbid();
+
         report.ReportDate = DateOnly.FromDateTime(request.ReportDate);
         await dbContext.SaveChangesAsync();
         return Ok();
@@ -63,6 +110,7 @@ public class ReportsController(AppDbContext dbContext, EmailService emailService
     {
         var report = await dbContext.FuelReports.Include(x => x.Entries).FirstOrDefaultAsync(x => x.Id == id);
         if (report is null) return NotFound();
+        if (!CanAccessAllReports() && report.CreatedByUserId != CurrentUserId) return Forbid();
         if (report.Entries.Count == 0) return BadRequest("Report must have entries");
 
         report.Status = FuelReportStatus.Submitted;

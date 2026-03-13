@@ -2,6 +2,7 @@ using System.Security.Claims;
 using dotnet_server._Data;
 using dotnet_server.Application.DTOs;
 using dotnet_server.Application.Services;
+using dotnet_server.Domain.Entities;
 using dotnet_server.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +15,14 @@ namespace dotnet_server.Api.Controllers;
 [Authorize]
 public class EntriesController(AppDbContext dbContext) : ControllerBase
 {
+    private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+    private bool CanAccessAllEntries() =>
+        User.IsInRole(nameof(UserRole.Admin)) || User.IsInRole(nameof(UserRole.Supervisor));
+
+    private bool CanModifyEntry(FuelEntry entry) =>
+        CanAccessAllEntries() || entry.EnteredByUserId == CurrentUserId;
+
     private async Task<IActionResult?> ValidateAndUpdateTrailerAsync(CreateFuelEntryRequest request)
     {
         var trailer = await dbContext.Trailers.FirstOrDefaultAsync(x => x.Id == request.TrailerId && x.IsActive);
@@ -45,12 +54,11 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
         var trailerValidationResult = await ValidateAndUpdateTrailerAsync(request);
         if (trailerValidationResult is not null) return trailerValidationResult;
 
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-
         var report = await dbContext.FuelReports.Include(x => x.Entries).FirstOrDefaultAsync(x => x.Id == reportId);
         if (report is null) return NotFound();
+        if (!CanAccessAllEntries() && report.CreatedByUserId != CurrentUserId) return Forbid();
 
-        var entry = new Domain.Entities.FuelEntry
+        var entry = new FuelEntry
         {
             FuelReportId = reportId,
             TrailerId = request.TrailerId,
@@ -58,7 +66,7 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
             FuelingTankLevelStart = request.FuelingTankLevelStart,
             FuelingTankLevelEnd = request.FuelingTankLevelEnd,
             GallonsPumped = request.GallonsPumped,
-            EnteredByUserId = userId,
+            EnteredByUserId = CurrentUserId,
             EnteredAtUtc = DateTime.UtcNow
         };
 
@@ -82,6 +90,7 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
 
         var entry = await dbContext.FuelEntries.Include(x => x.FuelReport).ThenInclude(r => r!.Entries).FirstOrDefaultAsync(x => x.Id == entryId);
         if (entry is null) return NotFound();
+        if (!CanModifyEntry(entry)) return Forbid();
         if (entry.VerificationStatus == VerificationStatus.Approved && !User.IsInRole(nameof(UserRole.Admin))) return BadRequest("Approved entries cannot be edited");
 
         entry.TrailerId = request.TrailerId;
@@ -100,6 +109,7 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
     {
         var entry = await dbContext.FuelEntries.Include(x => x.FuelReport).ThenInclude(r => r!.Entries).FirstOrDefaultAsync(x => x.Id == entryId);
         if (entry is null) return NotFound();
+        if (!CanModifyEntry(entry)) return Forbid();
         if (entry.VerificationStatus == VerificationStatus.Approved) return BadRequest("Approved entries cannot be deleted");
 
         dbContext.FuelEntries.Remove(entry);
@@ -112,7 +122,10 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
     public async Task<IActionResult> GetEntry(int entryId)
     {
         var entry = await dbContext.FuelEntries.Include(x => x.Photos).Include(x => x.Trailer).FirstOrDefaultAsync(x => x.Id == entryId);
-        return entry is null ? NotFound() : Ok(entry);
+        if (entry is null) return NotFound();
+        if (!CanModifyEntry(entry)) return Forbid();
+
+        return Ok(entry);
     }
 
     [HttpPost("entries/{entryId:int}/photos")]
@@ -121,6 +134,7 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
         if (!Enum.TryParse<FuelPhotoType>(photoType, true, out var parsedType)) return BadRequest("Invalid photo type");
         var entry = await dbContext.FuelEntries.FindAsync(entryId);
         if (entry is null) return NotFound();
+        if (!CanModifyEntry(entry)) return Forbid();
 
         var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "uploads", "fuel");
         Directory.CreateDirectory(uploadsDir);
@@ -129,7 +143,7 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
         await using var stream = System.IO.File.Create(fullPath);
         await file.CopyToAsync(stream);
 
-        var photo = new Domain.Entities.FuelEntryPhoto
+        var photo = new FuelEntryPhoto
         {
             FuelEntryId = entryId,
             PhotoType = parsedType,
@@ -147,6 +161,10 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
     [HttpGet("entries/{entryId:int}/photos")]
     public async Task<IActionResult> GetPhotos(int entryId)
     {
+        var entry = await dbContext.FuelEntries.FindAsync(entryId);
+        if (entry is null) return NotFound();
+        if (!CanModifyEntry(entry)) return Forbid();
+
         var photos = await dbContext.FuelEntryPhotos.Where(x => x.FuelEntryId == entryId).ToListAsync();
         return Ok(photos);
     }
