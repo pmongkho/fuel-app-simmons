@@ -1,6 +1,8 @@
-import { Component } from '@angular/core';
-import { DatePipe, NgClass } from '@angular/common';
+import { Component, OnInit, inject } from '@angular/core';
+import { DatePipe, NgClass, NgIf } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../../core/auth.service';
 
 type SupervisorEntry = {
   id: number;
@@ -8,69 +10,50 @@ type SupervisorEntry = {
   reportDate: string;
   employee: string;
   trailerNumber: string;
-  fuelType: 'Red Diesel' | 'Gasoline' | 'Def';
-  gallons: number;
-  submittedAt: string;
-  status: 'Pending Verification' | 'Flagged for Review' | 'Verified';
-  hasSignature: boolean;
+  fuelType: string;
+  gallonsPumped: number;
+  submittedTime: string;
+  status: string;
 };
 
 @Component({
   selector: 'app-supervisor-entries',
   standalone: true,
-  imports: [RouterLink, NgClass, DatePipe],
+  imports: [RouterLink, NgClass, DatePipe, NgIf],
   templateUrl: './supervisor-entries.component.html',
   styleUrl: './supervisor-entries.component.css',
 })
-export class SupervisorEntriesComponent {
-  readonly entries: SupervisorEntry[] = [
-    {
-      id: 1,
-      reportId: 1001,
-      reportDate: '2026-03-11',
-      employee: 'Employee One',
-      trailerNumber: '873423',
-      fuelType: 'Red Diesel',
-      gallons: 32,
-      submittedAt: '2026-03-11T09:12:00',
-      status: 'Pending Verification',
-      hasSignature: false,
-    },
-    {
-      id: 2,
-      reportId: 1001,
-      reportDate: '2026-03-11',
-      employee: 'Employee Two',
-      trailerNumber: '981200',
-      fuelType: 'Def',
-      gallons: 10,
-      submittedAt: '2026-03-11T10:01:00',
-      status: 'Flagged for Review',
-      hasSignature: false,
-    },
-    {
-      id: 3,
-      reportId: 1000,
-      reportDate: '2026-03-10',
-      employee: 'Employee Three',
-      trailerNumber: '655003',
-      fuelType: 'Gasoline',
-      gallons: 44,
-      submittedAt: '2026-03-10T17:31:00',
-      status: 'Verified',
-      hasSignature: true,
-    },
-  ];
+export class SupervisorEntriesComponent implements OnInit {
+  private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
+
+  entries: SupervisorEntry[] = [];
+  isLoading = true;
+  errorMessage: string | null = null;
+
+  ngOnInit(): void {
+    this.http.get<SupervisorEntry[]>('http://localhost:5152/api/supervisor/entries/pending', { headers: this.auth.authHeaders() }).subscribe({
+      next: (entries) => {
+        this.entries = entries;
+        this.isLoading = false;
+      },
+      error: () => {
+        this.errorMessage = 'Unable to load supervisor entries.';
+        this.isLoading = false;
+      },
+    });
+  }
 
   get pendingCount(): number {
-    return this.entries.filter((entry) => entry.status !== 'Verified').length;
+    return this.entries.length;
   }
-  badgeClass(status: SupervisorEntry['status']): string {
-    if (status === 'Verified') {
+
+  badgeClass(status: string): string {
+    if (status === 'Approved') {
       return 'bg-emerald-100 text-emerald-700';
     }
 
-    if (status === 'Flagged for Review') {
+    if (status === 'Rejected') {
       return 'bg-rose-100 text-rose-700';
     }
 
