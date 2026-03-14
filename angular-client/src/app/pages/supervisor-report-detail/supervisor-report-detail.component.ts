@@ -43,17 +43,29 @@ export class SupervisorReportDetailComponent implements OnInit {
   private readonly auth = inject(AuthService);
 
   report: FuelReportDetail | null = null;
+  isLoading = true;
+  errorMessage: string | null = null;
 
   ngOnInit(): void {
-    const reportId = Number(this.route.snapshot.paramMap.get('reportId'));
-    if (!Number.isFinite(reportId)) {
+    const reportIdParam = this.route.snapshot.paramMap.get('reportId');
+    const reportId = Number(reportIdParam);
+    if (!reportIdParam || !Number.isInteger(reportId) || reportId <= 0) {
+      this.errorMessage = 'Invalid report id.';
+      this.isLoading = false;
       return;
     }
 
     this.http
       .get<FuelReportDetail>(`http://localhost:5152/api/supervisor/reports/${reportId}`, { headers: this.auth.authHeaders() })
-      .subscribe((report) => {
-        this.report = report;
+      .subscribe({
+        next: (report) => {
+          this.report = report;
+          this.isLoading = false;
+        },
+        error: (error) => {
+          this.errorMessage = error.status === 404 ? 'Report not found.' : 'Unable to load report details.';
+          this.isLoading = false;
+        },
       });
   }
 }
