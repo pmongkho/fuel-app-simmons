@@ -1,7 +1,7 @@
 import { DatePipe, NgFor, NgIf } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, inject } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, ParamMap, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 
 interface FuelEntryDetail {
@@ -47,13 +47,24 @@ export class AdminReportDetailComponent implements OnInit {
   errorMessage: string | null = null;
 
   ngOnInit(): void {
-    const reportIdParam = this.route.snapshot.paramMap.get('reportId');
+    this.route.paramMap.subscribe((params: ParamMap) => {
+      this.loadReport(params);
+    });
+  }
+
+  private loadReport(params: ParamMap): void {
+    const reportIdParam = params.get('reportId');
     const reportId = Number(reportIdParam);
+
     if (!reportIdParam || !Number.isInteger(reportId) || reportId <= 0) {
       this.errorMessage = 'Invalid report id.';
       this.isLoading = false;
+      this.report = null;
       return;
     }
+
+    this.isLoading = true;
+    this.errorMessage = null;
 
     this.http
       .get<FuelReportDetail>(`http://localhost:5152/api/admin/reports/${reportId}`, { headers: this.auth.authHeaders() })
@@ -63,6 +74,7 @@ export class AdminReportDetailComponent implements OnInit {
           this.isLoading = false;
         },
         error: (error) => {
+          this.report = null;
           this.errorMessage = error.status === 404 ? 'Report not found.' : 'Unable to load report details.';
           this.isLoading = false;
         },
