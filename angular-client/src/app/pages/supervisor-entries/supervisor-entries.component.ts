@@ -8,6 +8,15 @@ type SupervisorEntry = {
   id: number;
   reportId: number;
   reportDate: string;
+  reportCreatedByUserId: number;
+  reportStatus: string;
+  reportTotalRedDiesel: number;
+  reportTotalClearDiesel: number;
+  reportTotalDef: number;
+  reportOverallTotalGallons: number;
+  reportCreatedAtUtc: string;
+  reportSubmittedAtUtc: string | null;
+  reportEntriesCount: number;
   employee: string;
   trailerNumber: string;
   fuelType: string;

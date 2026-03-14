@@ -4,13 +4,17 @@
       <h2 class="text-2xl font-semibold">Supervisor Report Detail <span class="text-slate-500">- {{ currentReport.reportDate }}</span></h2>
       <a routerLink="/supervisor/entries" class="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">Back to queue</a>
     </div>
-    <p class="mt-3 text-sm text-slate-600">Submitted by: {{ currentReport.createdBy }}</p>
+    <p class="mt-3 text-sm text-slate-600">Submitted by: {{ currentReport.createdBy }} (User ID: {{ currentReport.createdByUserId }})</p>
 
     <div class="mt-4 grid gap-2 text-sm sm:grid-cols-3 lg:grid-cols-4">
+      <div class="rounded-lg border border-slate-200 p-3">Report Status: <strong>{{ currentReport.status }}</strong></div>
       <div class="rounded-lg border border-slate-200 p-3">Red Diesel: <strong>{{ currentReport.totalRedDiesel }} gal</strong></div>
       <div class="rounded-lg border border-slate-200 p-3">Clear Diesel: <strong>{{ currentReport.totalClearDiesel }} gal</strong></div>
       <div class="rounded-lg border border-slate-200 p-3">DEF: <strong>{{ currentReport.totalDef }} gal</strong></div>
       <div class="rounded-lg border border-slate-200 p-3">Overall: <strong>{{ currentReport.overallTotalGallons }} gal</strong></div>
+      <div class="rounded-lg border border-slate-200 p-3">Entries: <strong>{{ currentReport.entriesCount }}</strong></div>
+      <div class="rounded-lg border border-slate-200 p-3">Created: <strong>{{ currentReport.createdAtUtc | date: 'short' }}</strong></div>
+      <div class="rounded-lg border border-slate-200 p-3">Submitted: <strong>{{ currentReport.submittedAtUtc ? (currentReport.submittedAtUtc | date: 'short') : '—' }}</strong></div>
     </div>
   </div>
 
