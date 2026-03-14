@@ -30,6 +30,10 @@ interface FuelReportDetail {
   entries: FuelEntryDetail[];
 }
 
+type FuelReportDetailResponse = Partial<FuelReportDetail> & {
+  entries?: FuelEntryDetail[] | null;
+};
+
 @Component({
   selector: 'app-admin-report-detail',
   standalone: true,
@@ -67,10 +71,10 @@ export class AdminReportDetailComponent implements OnInit {
     this.errorMessage = null;
 
     this.http
-      .get<FuelReportDetail>(`http://localhost:5152/api/admin/reports/${reportId}`, { headers: this.auth.authHeaders() })
+      .get<FuelReportDetailResponse>(`http://localhost:5152/api/admin/reports/${reportId}`, { headers: this.auth.authHeaders() })
       .subscribe({
         next: (report) => {
-          this.report = report;
+          this.report = this.normalizeReport(report);
           this.isLoading = false;
         },
         error: (error) => {
@@ -79,5 +83,20 @@ export class AdminReportDetailComponent implements OnInit {
           this.isLoading = false;
         },
       });
+  }
+
+  private normalizeReport(report: FuelReportDetailResponse): FuelReportDetail {
+    return {
+      id: report.id ?? 0,
+      reportDate: report.reportDate ?? '',
+      createdBy: report.createdBy ?? '',
+      status: report.status ?? '',
+      totalRedDiesel: report.totalRedDiesel ?? 0,
+      totalClearDiesel: report.totalClearDiesel ?? 0,
+      totalDef: report.totalDef ?? 0,
+      overallTotalGallons: report.overallTotalGallons ?? 0,
+      submittedAtUtc: report.submittedAtUtc ?? null,
+      entries: Array.isArray(report.entries) ? report.entries : [],
+    };
   }
 }
