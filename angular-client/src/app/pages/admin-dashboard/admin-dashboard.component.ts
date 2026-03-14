@@ -2,6 +2,7 @@ import { DatePipe, NgFor, NgIf } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 
 interface AdminDashboardTotals {
@@ -39,32 +40,25 @@ export class AdminDashboardComponent implements OnInit {
   errorMessage: string | null = null;
 
   ngOnInit(): void {
-    this.loadDashboard();
+    void this.loadDashboard();
   }
 
-  private loadDashboard(): void {
-    this.http.get<AdminDashboardTotals>('http://localhost:5152/api/admin/dashboard', { headers: this.auth.authHeaders() }).subscribe({
-      next: (totals) => {
-        this.totals = totals;
-        this.loadReports();
-      },
-      error: () => {
-        this.errorMessage = 'Unable to load dashboard totals.';
-        this.isLoading = false;
-      },
-    });
-  }
+  private async loadDashboard(): Promise<void> {
+    this.isLoading = true;
+    this.errorMessage = null;
 
-  private loadReports(): void {
-    this.http.get<AdminReportRow[]>('http://localhost:5152/api/admin/reports', { headers: this.auth.authHeaders() }).subscribe({
-      next: (reports) => {
-        this.reports = reports;
-        this.isLoading = false;
-      },
-      error: () => {
-        this.errorMessage = 'Unable to load reports.';
-        this.isLoading = false;
-      },
-    });
+    try {
+      const [totals, reports] = await Promise.all([
+        firstValueFrom(this.http.get<AdminDashboardTotals>('http://localhost:5152/api/admin/dashboard', { headers: this.auth.authHeaders() })),
+        firstValueFrom(this.http.get<AdminReportRow[]>('http://localhost:5152/api/admin/reports', { headers: this.auth.authHeaders() })),
+      ]);
+
+      this.totals = totals;
+      this.reports = Array.isArray(reports) ? reports : [];
+    } catch {
+      this.errorMessage = 'Unable to load dashboard data.';
+    } finally {
+      this.isLoading = false;
+    }
   }
 }
