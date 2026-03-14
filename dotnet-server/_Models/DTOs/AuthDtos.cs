@@ -6,6 +6,7 @@ public class AuthResponse
 {
     public string Token { get; set; } = string.Empty;
     public UserDto User { get; set; } = new();
+    public DateTime ExpiresAtUtc { get; set; }
 }
 
 public class UserDto
