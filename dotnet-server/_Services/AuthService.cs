@@ -26,6 +26,9 @@ public class AuthService(UserManager<User> userManager, IConfiguration configura
 
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.UTF8.GetBytes(configuration["Jwt:Key"] ?? "dev-key-dev-key-dev-key-dev-key");
+        var tokenLifetimeMinutes = configuration.GetValue<int?>("Jwt:TokenLifetimeMinutes") ?? 60;
+        var expiresAtUtc = DateTime.UtcNow.AddMinutes(tokenLifetimeMinutes);
+
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(
@@ -34,7 +37,7 @@ public class AuthService(UserManager<User> userManager, IConfiguration configura
                 new Claim(ClaimTypes.Name, user.FullName),
                 new Claim(ClaimTypes.Role, user.Role.ToString())
             ]),
-            Expires = DateTime.UtcNow.AddHours(12),
+            Expires = expiresAtUtc,
             Issuer = configuration["Jwt:Issuer"],
             Audience = configuration["Jwt:Audience"],
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
@@ -45,6 +48,7 @@ public class AuthService(UserManager<User> userManager, IConfiguration configura
         return new AuthResponse
         {
             Token = tokenHandler.WriteToken(token),
+            ExpiresAtUtc = expiresAtUtc,
             User = new UserDto
             {
                 Id = user.Id,
