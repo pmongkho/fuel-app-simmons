@@ -12,7 +12,7 @@ using dotnet_server._Data;
 namespace dotnet_server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260313214616_InitialCreate")]
+    [Migration("20260314133117_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
