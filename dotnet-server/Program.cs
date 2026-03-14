@@ -113,12 +113,12 @@ using (var scope = app.Services.CreateScope())
 
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
 
-        async Task SeedUserAsync(string fullName, string email, UserRole role)
+        async Task<User?> SeedUserAsync(string fullName, string email, UserRole role)
         {
             var existing = await userManager.FindByEmailAsync(email);
             if (existing is not null)
             {
-                return;
+                return existing;
             }
 
             var newUser = new User
@@ -135,20 +135,17 @@ using (var scope = app.Services.CreateScope())
             {
                 var errors = string.Join(", ", result.Errors.Select(e => e.Description));
                 app.Logger.LogWarning("Failed to seed user {Email}: {Errors}", email, errors);
+                return null;
             }
+
+            return newUser;
         }
 
-        await SeedUserAsync("Employee One", "employee@fuelapp.local", UserRole.Employee);
-        await SeedUserAsync("Employee Two", "employee2@fuelapp.local", UserRole.Employee);
-        await SeedUserAsync("Employee Three", "employee3@fuelapp.local", UserRole.Employee);
-        await SeedUserAsync("Supervisor One", "supervisor@fuelapp.local", UserRole.Supervisor);
-        await SeedUserAsync("Admin One", "admin@fuelapp.local", UserRole.Admin);
-
-        var employeeOne = await userManager.FindByEmailAsync("employee@fuelapp.local");
-        var employeeTwo = await userManager.FindByEmailAsync("employee2@fuelapp.local");
-        var employeeThree = await userManager.FindByEmailAsync("employee3@fuelapp.local");
-        var supervisor = await userManager.FindByEmailAsync("supervisor@fuelapp.local");
-        var admin = await userManager.FindByEmailAsync("admin@fuelapp.local");
+        var employeeOne = await SeedUserAsync("Employee One", "employee@fuelapp.local", UserRole.Employee);
+        var employeeTwo = await SeedUserAsync("Employee Two", "employee2@fuelapp.local", UserRole.Employee);
+        var employeeThree = await SeedUserAsync("Employee Three", "employee3@fuelapp.local", UserRole.Employee);
+        var supervisor = await SeedUserAsync("Supervisor One", "supervisor@fuelapp.local", UserRole.Supervisor);
+        var admin = await SeedUserAsync("Admin One", "admin@fuelapp.local", UserRole.Admin);
 
         if (!db.Trailers.Any())
         {
