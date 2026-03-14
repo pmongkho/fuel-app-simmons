@@ -40,9 +40,15 @@
             <tr>
               <th class="px-3 py-2 font-medium">Date</th>
               <th class="px-3 py-2 font-medium">User</th>
+              <th class="px-3 py-2 font-medium">Created By ID</th>
               <th class="px-3 py-2 font-medium">Status</th>
+              <th class="px-3 py-2 font-medium">Red Diesel</th>
+              <th class="px-3 py-2 font-medium">Clear Diesel</th>
+              <th class="px-3 py-2 font-medium">DEF</th>
               <th class="px-3 py-2 font-medium">Total Gallons</th>
+              <th class="px-3 py-2 font-medium">Entries</th>
               <th class="px-3 py-2 font-medium">Created</th>
+              <th class="px-3 py-2 font-medium">Submitted</th>
               <th class="px-3 py-2 font-medium">Action</th>
             </tr>
           </thead>
@@ -50,13 +56,19 @@
             <tr class="border-b border-slate-100" *ngFor="let report of reports">
               <td class="px-3 py-2">{{ report.reportDate }}</td>
               <td class="px-3 py-2">{{ report.createdBy }}</td>
+              <td class="px-3 py-2">{{ report.createdByUserId }}</td>
               <td class="px-3 py-2">{{ report.status }}</td>
+              <td class="px-3 py-2">{{ report.totalRedDiesel }}</td>
+              <td class="px-3 py-2">{{ report.totalClearDiesel }}</td>
+              <td class="px-3 py-2">{{ report.totalDef }}</td>
               <td class="px-3 py-2">{{ report.overallTotalGallons }}</td>
+              <td class="px-3 py-2">{{ report.entriesCount }}</td>
               <td class="px-3 py-2">{{ report.createdAtUtc | date: 'short' }}</td>
+              <td class="px-3 py-2">{{ report.submittedAtUtc ? (report.submittedAtUtc | date: 'short') : '—' }}</td>
               <td class="px-3 py-2"><a [routerLink]="['/admin/reports', report.id]" class="rounded-md border border-slate-300 px-3 py-1 hover:bg-slate-50">View</a></td>
             </tr>
             <tr *ngIf="reports.length === 0">
-              <td class="px-3 py-3 text-slate-500" colspan="6">No reports found.</td>
+              <td class="px-3 py-3 text-slate-500" colspan="12">No reports found.</td>
             </tr>
           </tbody>
         </table>

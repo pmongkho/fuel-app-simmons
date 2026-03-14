@@ -17,10 +17,16 @@ interface AdminDashboardTotals {
 interface AdminReportRow {
   id: number;
   reportDate: string;
+  createdByUserId: number;
   createdBy: string;
   status: string;
+  totalRedDiesel: number;
+  totalClearDiesel: number;
+  totalDef: number;
   overallTotalGallons: number;
   createdAtUtc: string;
+  submittedAtUtc: string | null;
+  entriesCount: number;
 }
 
 @Component({

@@ -17,7 +17,12 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
     [HttpGet("entries/pending")]
     public async Task<IActionResult> Pending([FromQuery] string? date)
     {
-        var query = dbContext.FuelEntries.Include(x => x.FuelReport).Include(x => x.EnteredByUser).Include(x => x.Trailer).Where(x => x.VerificationStatus == VerificationStatus.Pending);
+        var query = dbContext.FuelEntries
+            .Include(x => x.FuelReport)
+            .ThenInclude(r => r!.Entries)
+            .Include(x => x.EnteredByUser)
+            .Include(x => x.Trailer)
+            .Where(x => x.VerificationStatus == VerificationStatus.Pending);
         if (!string.IsNullOrWhiteSpace(date))
         {
             if (!DateOnly.TryParse(date, out var parsedDate)) return BadRequest("Invalid date format. Use yyyy-MM-dd.");
@@ -29,6 +34,15 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
             x.Id,
             reportId = x.FuelReport!.Id,
             reportDate = x.FuelReport!.ReportDate,
+            reportCreatedByUserId = x.FuelReport!.CreatedByUserId,
+            reportStatus = x.FuelReport!.Status.ToString(),
+            reportTotalRedDiesel = x.FuelReport!.TotalRedDiesel,
+            reportTotalClearDiesel = x.FuelReport!.TotalClearDiesel,
+            reportTotalDef = x.FuelReport!.TotalDef,
+            reportOverallTotalGallons = x.FuelReport!.OverallTotalGallons,
+            reportCreatedAtUtc = x.FuelReport!.CreatedAtUtc,
+            reportSubmittedAtUtc = x.FuelReport!.SubmittedAtUtc,
+            reportEntriesCount = x.FuelReport!.Entries.Count,
             employee = x.EnteredByUser!.FullName,
             trailerNumber = x.Trailer != null ? x.Trailer.TrailerNumber : string.Empty,
             fuelType = x.FuelType.ToString(),
@@ -58,6 +72,7 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
         {
             report.Id,
             report.ReportDate,
+            report.CreatedByUserId,
             createdBy = report.CreatedByUser!.FullName,
             status = report.Status.ToString(),
             report.TotalRedDiesel,
@@ -66,6 +81,7 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
             report.OverallTotalGallons,
             report.CreatedAtUtc,
             report.SubmittedAtUtc,
+            entriesCount = report.Entries.Count,
             entries = report.Entries
                 .OrderBy(x => x.EnteredAtUtc)
                 .Select(x => new

@@ -28,24 +28,29 @@ public class AdminController(AppDbContext dbContext) : ControllerBase
     }
 
     [HttpGet("reports")]
-    public async Task<IActionResult> Reports([FromQuery] string? date, [FromQuery] string? status)
+    public async Task<IActionResult> Reports([FromQuery] DateOnly? date = null, [FromQuery] FuelReportStatus? status = null)
     {
-        var query = dbContext.FuelReports.Include(x => x.CreatedByUser).AsQueryable();
-        if (!string.IsNullOrWhiteSpace(date))
-        {
-            if (!DateOnly.TryParse(date, out var parsedDate)) return BadRequest("Invalid date format. Use yyyy-MM-dd.");
-            query = query.Where(x => x.ReportDate == parsedDate);
-        }
-        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<FuelReportStatus>(status, true, out var parsed)) query = query.Where(x => x.Status == parsed);
+        var query = dbContext.FuelReports
+            .Include(x => x.CreatedByUser)
+            .AsQueryable();
+
+        if (date.HasValue) query = query.Where(x => x.ReportDate == date.Value);
+        if (status.HasValue) query = query.Where(x => x.Status == status.Value);
 
         return Ok(await query.OrderByDescending(x => x.CreatedAtUtc).Select(x => new
         {
             x.Id,
             reportDate = x.ReportDate,
+            x.CreatedByUserId,
             createdBy = x.CreatedByUser!.FullName,
             status = x.Status.ToString(),
+            x.TotalRedDiesel,
+            x.TotalClearDiesel,
+            x.TotalDef,
             x.OverallTotalGallons,
-            x.CreatedAtUtc
+            x.CreatedAtUtc,
+            x.SubmittedAtUtc,
+            entriesCount = x.Entries.Count()
         }).ToListAsync());
     }
 
