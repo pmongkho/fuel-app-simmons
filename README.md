@@ -28,9 +28,10 @@ After fix, `angular-client` should **not** appear in that output.
 If routes like `/admin/users` or `/reports/mine` 404 on refresh in Vercel, the app needs an SPA fallback rewrite.
 
 This repo now includes `vercel.json` configured to:
-- build from `angular-client/package.json`
-- publish `angular-client/dist/angular-client/browser`
-- rewrite all non-file requests to `/index.html`
+- install dependencies in `angular-client`
+- build with `npm run build --prefix angular-client`
+- publish `angular-client/dist/angular-client`
+- rewrite all requests to `/index.html` for SPA routing
 
 If you use the Vercel dashboard, make sure:
 - Framework preset: **Other** (or keep custom `vercel.json` handling)
