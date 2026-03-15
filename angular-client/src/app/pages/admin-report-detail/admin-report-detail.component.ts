@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, ParamMap, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
+import { environment } from '../../../environments/environment';
 
 interface FuelEntryDetail {
   id: number;
@@ -67,7 +68,7 @@ export class AdminReportDetailComponent implements OnInit {
     this.errorMessage = null;
 
     this.http
-      .get<FuelReportDetail>(`http://localhost:5152/api/admin/reports/${reportId}`, { headers: this.auth.authHeaders() })
+      .get<FuelReportDetail>(`${environment.apiBaseUrl}/admin/reports/${reportId}`, { headers: this.auth.authHeaders() })
       .subscribe({
         next: (report) => {
           this.report = report;

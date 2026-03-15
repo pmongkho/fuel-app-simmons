@@ -4,6 +4,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
+import { environment } from '../../../environments/environment';
 
 interface AdminDashboardTotals {
   reportsToday: number;
@@ -54,10 +55,10 @@ export class AdminDashboardComponent implements OnInit {
     this.errorMessage = null;
 
     forkJoin({
-      totals: this.http.get<AdminDashboardTotals>('http://localhost:5152/api/admin/dashboard', {
+      totals: this.http.get<AdminDashboardTotals>(`${environment.apiBaseUrl}/admin/dashboard`, {
         headers: this.auth.authHeaders(),
       }),
-      reports: this.http.get<AdminReportRow[]>('http://localhost:5152/api/admin/reports', {
+      reports: this.http.get<AdminReportRow[]>(`${environment.apiBaseUrl}/admin/reports`, {
         headers: this.auth.authHeaders(),
       }),
     }).subscribe({

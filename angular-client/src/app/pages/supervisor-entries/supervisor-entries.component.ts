@@ -3,6 +3,7 @@ import { DatePipe, NgClass, NgIf } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/auth.service';
+import { environment } from '../../../environments/environment';
 
 type SupervisorEntry = {
   id: number;
@@ -41,7 +42,7 @@ export class SupervisorEntriesComponent implements OnInit {
   errorMessage: string | null = null;
 
   ngOnInit(): void {
-    this.http.get<SupervisorEntry[]>('http://localhost:5152/api/supervisor/entries/pending', { headers: this.auth.authHeaders() }).subscribe({
+    this.http.get<SupervisorEntry[]>(`${environment.apiBaseUrl}/supervisor/entries/pending`, { headers: this.auth.authHeaders() }).subscribe({
       next: (entries) => {
         this.entries = entries;
         this.isLoading = false;

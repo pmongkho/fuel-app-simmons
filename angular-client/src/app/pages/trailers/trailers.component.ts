@@ -2,6 +2,7 @@ import { DatePipe, NgClass, NgFor } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { AuthService } from '../../core/auth.service';
+import { environment } from '../../../environments/environment';
 
 interface TrailerRow {
   id: number;
@@ -29,7 +30,7 @@ export class TrailersComponent implements OnInit {
 
   ngOnInit(): void {
     this.http
-      .get<TrailerRow[]>('http://localhost:5152/api/trailers', { headers: this.auth.authHeaders() })
+      .get<TrailerRow[]>(`${environment.apiBaseUrl}/trailers`, { headers: this.auth.authHeaders() })
       .subscribe({
         next: (rows) => {
           this.trailers.set(rows);
