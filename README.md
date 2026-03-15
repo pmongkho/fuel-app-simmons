@@ -22,3 +22,17 @@ git ls-files --stage | rg '^160000'
 ```
 
 After fix, `angular-client` should **not** appear in that output.
+
+## Vercel deploy notes (Angular SPA)
+
+If routes like `/admin/users` or `/reports/mine` 404 on refresh in Vercel, the app needs an SPA fallback rewrite.
+
+This repo now includes `vercel.json` configured to:
+- build from `angular-client/package.json`
+- publish `angular-client/dist/angular-client/browser`
+- rewrite all non-file requests to `/index.html`
+
+If you use the Vercel dashboard, make sure:
+- Framework preset: **Other** (or keep custom `vercel.json` handling)
+- Root directory: repository root (since `vercel.json` is at root)
+- Build command is not overriding the config above
