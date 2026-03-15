@@ -1,6 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { environment } from '../../environments/environment';
 
 export type AppRole = 'Employee' | 'Supervisor' | 'Admin';
 
@@ -13,7 +14,7 @@ export interface LoggedInUser {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly apiBase = 'http://localhost:5152/api';
+  private readonly apiBase = environment.apiBaseUrl;
   private readonly tokenKey = 'fuel_token';
   private readonly userKey = 'fuel_user';
   private readonly inactivityTimeoutMs = 15 * 60 * 1000;

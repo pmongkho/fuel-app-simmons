@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
+import { environment } from '../../../environments/environment';
 
 interface TrailerRow {
   id: number;
@@ -78,7 +79,7 @@ export class ReportsNewComponent {
     this.loadingTrailers.set(true);
     try {
       const rows = await firstValueFrom(
-        this.http.get<TrailerRow[]>('http://localhost:5152/api/trailers', { headers: this.auth.authHeaders() })
+        this.http.get<TrailerRow[]>(`${environment.apiBaseUrl}/trailers`, { headers: this.auth.authHeaders() })
       );
       this.trailers.set(rows.filter((x) => x.isActive));
 
@@ -144,7 +145,7 @@ export class ReportsNewComponent {
     try {
       const createReportResponse = await firstValueFrom(
         this.http.post<{ id: number; status: string }>(
-          'http://localhost:5152/api/reports',
+          `${environment.apiBaseUrl}/reports`,
           { reportDate: new Date(this.reportDate).toISOString() },
           { headers: this.auth.authHeaders() }
         )
@@ -153,7 +154,7 @@ export class ReportsNewComponent {
       for (const currentEntry of this.entries()) {
         await firstValueFrom(
           this.http.post(
-            `http://localhost:5152/api/reports/${createReportResponse.id}/entries`,
+            `${environment.apiBaseUrl}/reports/${createReportResponse.id}/entries`,
             {
               trailerId: currentEntry.trailerId,
               isTankFull: currentEntry.trailerTankFull,
@@ -170,7 +171,7 @@ export class ReportsNewComponent {
       }
 
       await firstValueFrom(
-        this.http.post(`http://localhost:5152/api/reports/${createReportResponse.id}/submit`, {}, { headers: this.auth.authHeaders() })
+        this.http.post(`${environment.apiBaseUrl}/reports/${createReportResponse.id}/submit`, {}, { headers: this.auth.authHeaders() })
       );
 
       this.entries.set([]);

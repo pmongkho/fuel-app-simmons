@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/auth.service';
+import { environment } from '../../../environments/environment';
 
 interface ReportRow {
   id: number;
@@ -28,7 +29,7 @@ export class ReportsMineComponent implements OnInit {
 
   ngOnInit(): void {
     this.http
-      .get<ReportRow[]>('http://localhost:5152/api/reports/mine', { headers: this.auth.authHeaders() })
+      .get<ReportRow[]>(`${environment.apiBaseUrl}/reports/mine`, { headers: this.auth.authHeaders() })
       .subscribe({
         next: (rows) => {
           this.reports.set(rows);
