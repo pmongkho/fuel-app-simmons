@@ -5,7 +5,7 @@
       "src": "angular-client/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist/angular-client/browser"
+        "distDir": "dist/angular-client"
       }
     }
   ],
