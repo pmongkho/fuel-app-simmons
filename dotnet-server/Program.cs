@@ -93,25 +93,27 @@ builder.Services.AddCors(options =>
             ?? ["http://localhost:4200", "https://fuel-app-simmons.vercel.app", "https://*.vercel.app"];
 
         var exactOrigins = configuredOrigins
-            .Where(origin => !origin.Contains("*"))
+            .Where(origin => !string.IsNullOrWhiteSpace(origin) && !origin.Contains('*'))
+            .Select(origin => origin.TrimEnd('/'))
             .ToArray();
 
         var wildcardOrigins = configuredOrigins
-            .Where(origin => origin.Contains("*"))
-            .Select(origin => origin.Replace("https://*.", string.Empty, StringComparison.OrdinalIgnoreCase))
+            .Where(origin => !string.IsNullOrWhiteSpace(origin) && origin.Contains('*'))
+            .Select(origin => origin.Replace("https://*.", string.Empty, StringComparison.OrdinalIgnoreCase).TrimEnd('/'))
+            .Where(suffix => !string.IsNullOrWhiteSpace(suffix))
             .ToArray();
 
-        policy.WithOrigins(exactOrigins)
-            .SetIsOriginAllowed(origin =>
+        policy.SetIsOriginAllowed(origin =>
             {
-                if (exactOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-
-                if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                if (string.IsNullOrWhiteSpace(origin) || !Uri.TryCreate(origin, UriKind.Absolute, out var uri))
                 {
                     return false;
+                }
+
+                var normalizedOrigin = origin.TrimEnd('/');
+                if (exactOrigins.Contains(normalizedOrigin, StringComparer.OrdinalIgnoreCase))
+                {
+                    return true;
                 }
 
                 return wildcardOrigins.Any(suffix =>
