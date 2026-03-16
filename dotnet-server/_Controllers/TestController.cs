@@ -6,9 +6,9 @@ namespace dotnet_server.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class TestController(AppDbContext dbContext) : ControllerBase
+public class TestController(AppDbContext context) : ControllerBase
 {
-    private readonly AppDbContext dbContext;
+    private readonly AppDbContext dbContext = context;
     
 
     [HttpGet]
