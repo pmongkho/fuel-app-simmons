@@ -7,7 +7,8 @@ public class CreateReportRequest
 
 public class CreateFuelEntryRequest
 {
-    public int TrailerId { get; set; }
+    public int? TrailerId { get; set; }
+    public string TrailerNumber { get; set; } = string.Empty;
     public bool IsTankFull { get; set; }
     public bool HasMechanicalIssues { get; set; }
     public string? TrailerNotes { get; set; }

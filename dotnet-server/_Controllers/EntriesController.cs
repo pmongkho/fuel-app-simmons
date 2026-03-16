@@ -23,16 +23,39 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
     private bool CanModifyEntry(FuelEntry entry) =>
         CanAccessAllEntries() || entry.EnteredByUserId == CurrentUserId;
 
-    private async Task<IActionResult?> ValidateAndUpdateTrailerAsync(CreateFuelEntryRequest request)
+    private async Task<(Trailer? trailer, IActionResult? errorResult)> ResolveAndUpdateTrailerAsync(CreateFuelEntryRequest request)
     {
-        var trailer = await dbContext.Trailers.FirstOrDefaultAsync(x => x.Id == request.TrailerId && x.IsActive);
-        if (trailer is null) return NotFound("Trailer not found or inactive.");
+        var normalizedTrailerNumber = request.TrailerNumber.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedTrailerNumber))
+            return (null, BadRequest("Trailer number is required."));
+
+        Trailer? trailer = null;
+
+        if (request.TrailerId is int trailerId)
+        {
+            trailer = await dbContext.Trailers.FirstOrDefaultAsync(x => x.Id == trailerId && x.IsActive);
+            if (trailer is not null && !string.Equals(trailer.TrailerNumber, normalizedTrailerNumber, StringComparison.OrdinalIgnoreCase))
+                trailer = null;
+        }
+
+        trailer ??= await dbContext.Trailers.FirstOrDefaultAsync(x => x.TrailerNumber == normalizedTrailerNumber && x.IsActive);
+
+        if (trailer is null)
+        {
+            trailer = new Trailer
+            {
+                TrailerNumber = normalizedTrailerNumber,
+                UpdatedAtUtc = DateTime.UtcNow
+            };
+            dbContext.Trailers.Add(trailer);
+        }
 
         trailer.IsTankFull = request.IsTankFull;
         trailer.HasMechanicalIssues = request.HasMechanicalIssues;
         trailer.Notes = request.TrailerNotes;
         trailer.UpdatedAtUtc = DateTime.UtcNow;
-        return null;
+
+        return (trailer, null);
     }
 
     private static bool TankLevelsMatchGallonsPumped(CreateFuelEntryRequest request)
@@ -51,8 +74,8 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
         if (!TankLevelsMatchGallonsPumped(request))
             return BadRequest("Fueling tank start and finish must match gallons pumped (start - finish = gallons pumped).");
 
-        var trailerValidationResult = await ValidateAndUpdateTrailerAsync(request);
-        if (trailerValidationResult is not null) return trailerValidationResult;
+        var (trailer, trailerErrorResult) = await ResolveAndUpdateTrailerAsync(request);
+        if (trailerErrorResult is not null) return trailerErrorResult;
 
         var report = await dbContext.FuelReports.Include(x => x.Entries).FirstOrDefaultAsync(x => x.Id == reportId);
         if (report is null) return NotFound();
@@ -61,7 +84,7 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
         var entry = new FuelEntry
         {
             FuelReportId = reportId,
-            TrailerId = request.TrailerId,
+            TrailerId = trailer!.Id,
             FuelType = fuelType,
             FuelingTankLevelStart = request.FuelingTankLevelStart,
             FuelingTankLevelEnd = request.FuelingTankLevelEnd,
@@ -85,15 +108,15 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
         if (!TankLevelsMatchGallonsPumped(request))
             return BadRequest("Fueling tank start and finish must match gallons pumped (start - finish = gallons pumped).");
 
-        var trailerValidationResult = await ValidateAndUpdateTrailerAsync(request);
-        if (trailerValidationResult is not null) return trailerValidationResult;
+        var (trailer, trailerErrorResult) = await ResolveAndUpdateTrailerAsync(request);
+        if (trailerErrorResult is not null) return trailerErrorResult;
 
         var entry = await dbContext.FuelEntries.Include(x => x.FuelReport).ThenInclude(r => r!.Entries).FirstOrDefaultAsync(x => x.Id == entryId);
         if (entry is null) return NotFound();
         if (!CanModifyEntry(entry)) return Forbid();
         if (entry.VerificationStatus == VerificationStatus.Approved && !User.IsInRole(nameof(UserRole.Admin))) return BadRequest("Approved entries cannot be edited");
 
-        entry.TrailerId = request.TrailerId;
+        entry.TrailerId = trailer!.Id;
         entry.FuelType = fuelType;
         entry.FuelingTankLevelStart = request.FuelingTankLevelStart;
         entry.FuelingTankLevelEnd = request.FuelingTankLevelEnd;

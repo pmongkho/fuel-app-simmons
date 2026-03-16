@@ -7,15 +7,8 @@ import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 import { environment } from '../../../environments/environment';
 
-interface TrailerRow {
-  id: number;
-  trailerNumber: string;
-  location: 'Main' | 'Flex';
-  isActive: boolean;
-}
-
 interface Entry {
-  trailerId: number | null;
+  trailerNumber: string;
   fuelType: 'RedDiesel' | 'ClearDiesel' | 'Def';
   trailerTankFull: boolean;
   fuelingTankLevelStart: number | null;
@@ -39,13 +32,11 @@ export class ReportsNewComponent {
   private readonly router = inject(Router);
 
   reportDate = new Date().toISOString().slice(0, 10);
-  readonly trailers = signal<TrailerRow[]>([]);
-  readonly loadingTrailers = signal(true);
   readonly submitInProgress = signal(false);
   readonly submitMessage = signal<string | null>(null);
 
   entry: Entry = {
-    trailerId: null,
+    trailerNumber: '',
     fuelType: 'RedDiesel',
     trailerTankFull: false,
     fuelingTankLevelStart: null,
@@ -62,37 +53,6 @@ export class ReportsNewComponent {
   defTotal = computed(() => this.entries().filter((x) => x.fuelType === 'Def').reduce((a, b) => a + (b.gallonsPumped ?? 0), 0));
   overallTotal = computed(() => this.redTotal() + this.clearTotal() + this.defTotal());
 
-  constructor() {
-    this.loadTrailers();
-  }
-
-  getTrailerLabel(trailerId: number | null): string {
-    if (trailerId === null) {
-      return 'Unknown trailer';
-    }
-
-    const trailer = this.trailers().find((x) => x.id === trailerId);
-    return trailer ? `${trailer.trailerNumber} (${trailer.location})` : `Trailer #${trailerId}`;
-  }
-
-  private async loadTrailers(): Promise<void> {
-    this.loadingTrailers.set(true);
-    try {
-      const rows = await firstValueFrom(
-        this.http.get<TrailerRow[]>(`${environment.apiBaseUrl}/trailers`, { headers: this.auth.authHeaders() })
-      );
-      this.trailers.set(rows.filter((x) => x.isActive));
-
-      if (this.entry.trailerId === null && this.trailers().length > 0) {
-        this.entry = { ...this.entry, trailerId: this.trailers()[0].id };
-      }
-    } catch {
-      this.submitMessage.set('Unable to load trailers. Please refresh and try again.');
-    } finally {
-      this.loadingTrailers.set(false);
-    }
-  }
-
   private fuelingLevelsMatchGallons(entry: Entry): boolean {
     if (entry.fuelingTankLevelStart === null || entry.fuelingTankLevelEnd === null || entry.gallonsPumped === null) {
       return false;
@@ -104,8 +64,8 @@ export class ReportsNewComponent {
   saveEntry() {
     this.submitMessage.set(null);
 
-    if (this.entry.trailerId === null) {
-      window.alert('Please select a trailer before adding an entry.');
+    if (!this.entry.trailerNumber.trim()) {
+      window.alert('Please enter a trailer number before adding an entry.');
       return;
     }
 
@@ -114,9 +74,9 @@ export class ReportsNewComponent {
       return;
     }
 
-    this.entries.set([...this.entries(), { ...this.entry }]);
+    this.entries.set([...this.entries(), { ...this.entry, trailerNumber: this.entry.trailerNumber.trim() }]);
     this.entry = {
-      trailerId: this.trailers().length > 0 ? this.trailers()[0].id : null,
+      trailerNumber: '',
       fuelType: 'RedDiesel',
       trailerTankFull: false,
       fuelingTankLevelStart: null,
@@ -156,7 +116,7 @@ export class ReportsNewComponent {
           this.http.post(
             `${environment.apiBaseUrl}/reports/${createReportResponse.id}/entries`,
             {
-              trailerId: currentEntry.trailerId,
+              trailerNumber: currentEntry.trailerNumber,
               isTankFull: currentEntry.trailerTankFull,
               hasMechanicalIssues: currentEntry.hasMechanicalIssues,
               trailerNotes: currentEntry.notes,
