@@ -37,7 +37,7 @@ public class TestController(AppDbContext context) : ControllerBase
         }
 
         var timestamp = await dbContext.Database
-            .SqlQueryRaw<DateTime>("SELECT NOW()")
+            .SqlQueryRaw<DateTime>("SELECT NOW() AS \"Value\"")
             .SingleAsync();
 
         return Ok(new
