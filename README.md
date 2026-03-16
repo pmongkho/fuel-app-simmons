@@ -37,3 +37,19 @@ If you use the Vercel dashboard, make sure:
 - Framework preset: **Other** (or keep custom `vercel.json` handling)
 - Root directory: repository root (since `vercel.json` is at root)
 - Build command is not overriding the config above
+
+
+## Render deploy/env vars (current production)
+
+Backend service URL:
+- `https://fuel-app-simmons.onrender.com`
+
+Database URL:
+- `postgresql://fuel_app_simmons_user:xcrZ4WpBTKWHefScIDBAgmJhvbt2HpKy@dpg-d6rmub7gi27c73daq9p0-a/fuel_app_simmons`
+
+Set these in Render for the .NET API service:
+- `ConnectionStrings__DefaultConnection` = `Host=dpg-d6rmub7gi27c73daq9p0-a;Port=5432;Database=fuel_app_simmons;Username=fuel_app_simmons_user;Password=xcrZ4WpBTKWHefScIDBAgmJhvbt2HpKy;SSL Mode=Require;Trust Server Certificate=true`
+- (optional alternative) `DATABASE_URL` = `postgresql://fuel_app_simmons_user:xcrZ4WpBTKWHefScIDBAgmJhvbt2HpKy@dpg-d6rmub7gi27c73daq9p0-a/fuel_app_simmons`
+
+Angular production API URL is hardcoded in `angular-client/src/environments/environment.production.ts` to:
+- `https://fuel-app-simmons.onrender.com/api`
