@@ -89,10 +89,35 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("frontend", policy =>
     {
-        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-            ?? ["http://localhost:4200", "https://fuel-app-simmons.vercel.app"];
+        var configuredOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?? ["http://localhost:4200", "https://fuel-app-simmons.vercel.app", "https://*.vercel.app"];
 
-        policy.WithOrigins(allowedOrigins)
+        var exactOrigins = configuredOrigins
+            .Where(origin => !origin.Contains("*"))
+            .ToArray();
+
+        var wildcardOrigins = configuredOrigins
+            .Where(origin => origin.Contains("*"))
+            .Select(origin => origin.Replace("https://*.", string.Empty, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        policy.WithOrigins(exactOrigins)
+            .SetIsOriginAllowed(origin =>
+            {
+                if (exactOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                {
+                    return false;
+                }
+
+                return wildcardOrigins.Any(suffix =>
+                    uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)
+                    && uri.Host.EndsWith($".{suffix}", StringComparison.OrdinalIgnoreCase));
+            })
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
