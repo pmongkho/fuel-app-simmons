@@ -102,8 +102,57 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
     [HttpGet("entries/{entryId:int}")]
     public async Task<IActionResult> Get(int entryId)
     {
-        var entry = await dbContext.FuelEntries.Include(x => x.Photos).Include(x => x.FuelReport).Include(x => x.EnteredByUser).FirstOrDefaultAsync(x => x.Id == entryId);
-        return entry is null ? NotFound() : Ok(entry);
+        var entry = await dbContext.FuelEntries
+            .Include(x => x.Photos)
+            .Include(x => x.FuelReport)
+            .ThenInclude(report => report!.Entries)
+            .ThenInclude(reportEntry => reportEntry.EnteredByUser)
+            .Include(x => x.FuelReport)
+            .ThenInclude(report => report!.CreatedByUser)
+            .Include(x => x.FuelReport)
+            .ThenInclude(report => report!.Entries)
+            .ThenInclude(reportEntry => reportEntry.Trailer)
+            .Include(x => x.EnteredByUser)
+            .Include(x => x.Trailer)
+            .FirstOrDefaultAsync(x => x.Id == entryId);
+
+        if (entry is null || entry.FuelReport is null) return NotFound();
+
+        return Ok(new
+        {
+            entry.Id,
+            fuelType = entry.FuelType.ToString(),
+            entry.GallonsPumped,
+            entry.FuelingTankLevelStart,
+            entry.FuelingTankLevelEnd,
+            entry.Notes,
+            verificationStatus = entry.VerificationStatus.ToString(),
+            entry.EnteredAtUtc,
+            enteredBy = entry.EnteredByUser != null ? entry.EnteredByUser.FullName : string.Empty,
+            trailerNumber = entry.Trailer != null ? entry.Trailer.TrailerNumber : string.Empty,
+            report = new
+            {
+                entry.FuelReport.Id,
+                entry.FuelReport.ReportDate,
+                createdBy = entry.FuelReport.CreatedByUser != null ? entry.FuelReport.CreatedByUser.FullName : string.Empty,
+                status = entry.FuelReport.Status.ToString(),
+                entriesCount = entry.FuelReport.Entries.Count
+            },
+            reportEntries = entry.FuelReport.Entries
+                .OrderBy(reportEntry => reportEntry.EnteredAtUtc)
+                .Select(reportEntry => new
+                {
+                    reportEntry.Id,
+                    fuelType = reportEntry.FuelType.ToString(),
+                    reportEntry.GallonsPumped,
+                    reportEntry.FuelingTankLevelStart,
+                    reportEntry.FuelingTankLevelEnd,
+                    verificationStatus = reportEntry.VerificationStatus.ToString(),
+                    reportEntry.EnteredAtUtc,
+                    enteredBy = reportEntry.EnteredByUser != null ? reportEntry.EnteredByUser.FullName : string.Empty,
+                    trailerNumber = reportEntry.Trailer != null ? reportEntry.Trailer.TrailerNumber : string.Empty
+                })
+        });
     }
 
     [HttpPost("entries/{entryId:int}/approve")]
