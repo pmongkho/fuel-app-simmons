@@ -58,7 +58,7 @@ export class ReportsNewComponent {
       return false;
     }
 
-    return entry.fuelingTankLevelStart - entry.fuelingTankLevelEnd === entry.gallonsPumped;
+    return entry.fuelingTankLevelEnd - entry.fuelingTankLevelStart === entry.gallonsPumped;
   }
 
   saveEntry() {
@@ -70,7 +70,7 @@ export class ReportsNewComponent {
     }
 
     if (!this.fuelingLevelsMatchGallons(this.entry)) {
-      window.alert('Fueling tank start and finish must match gallons pumped (start - finish = gallons pumped).');
+      window.alert('Fueling tank start and finish must match gallons pumped (finish - start = gallons pumped).');
       return;
     }
 
