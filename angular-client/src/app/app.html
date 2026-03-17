@@ -1,6 +1,6 @@
 <div class="min-h-screen bg-slate-100 text-slate-900">
   <header class="border-b border-slate-200 bg-white/90 backdrop-blur">
-    <div class="mx-auto flex w-full max-w-5xl items-center gap-3 px-4 py-3 sm:px-6 ">
+    <div class="mx-auto flex w-full max-w-5xl items-center gap-3 px-4 py-3 sm:px-6">
       <div class="rounded-md bg-sky-600 px-2 py-1 text-xs font-semibold text-white">Fuel</div>
       <h1 class="text-base font-semibold sm:text-lg">Fuel Report App</h1>
       <nav class="ml-auto hidden gap-2 sm:flex">
@@ -46,15 +46,53 @@
           >
         }
       </nav>
-      @if (showLogout()) {
+
       <button
-        (click)="logout()"
-        class="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
+        type="button"
+        class="ml-auto inline-flex items-center rounded-md border border-slate-300 px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-100 sm:hidden"
+        [attr.aria-expanded]="mobileNavOpen()"
+        aria-label="Toggle navigation"
+        (click)="toggleMobileNav()"
       >
-        Logout
+        ☰
       </button>
+
+      @if (showLogout()) {
+        <button
+          (click)="logout()"
+          class="hidden rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 sm:inline-flex"
+        >
+          Logout
+        </button>
       }
     </div>
+
+    @if (mobileNavOpen()) {
+      <div class="mx-auto w-full max-w-5xl border-t border-slate-200 px-4 py-3 sm:hidden">
+        <nav class="flex flex-col gap-2">
+          @if (canAccessEmployee()) {
+            <a routerLink="/reports/new" routerLinkActive="bg-sky-100 text-sky-700" class="rounded-md px-3 py-2 text-sm text-slate-600 hover:bg-slate-100" (click)="closeMobileNav()">Entry</a>
+            <a routerLink="/reports/mine" routerLinkActive="bg-sky-100 text-sky-700" class="rounded-md px-3 py-2 text-sm text-slate-600 hover:bg-slate-100" (click)="closeMobileNav()">Reports</a>
+          }
+
+          @if (canAccessTrailers()) {
+            <a routerLink="/trailers" routerLinkActive="bg-sky-100 text-sky-700" class="rounded-md px-3 py-2 text-sm text-slate-600 hover:bg-slate-100" (click)="closeMobileNav()">Trailers</a>
+          }
+
+          @if (canAccessSupervisor()) {
+            <a routerLink="/supervisor/entries" routerLinkActive="bg-sky-100 text-sky-700" class="rounded-md px-3 py-2 text-sm text-slate-600 hover:bg-slate-100" (click)="closeMobileNav()">Supervisor</a>
+          }
+
+          @if (canAccessAdmin()) {
+            <a routerLink="/admin/dashboard" routerLinkActive="bg-sky-100 text-sky-700" class="rounded-md px-3 py-2 text-sm text-slate-600 hover:bg-slate-100" (click)="closeMobileNav()">Admin</a>
+          }
+
+          @if (showLogout()) {
+            <button (click)="logout()" class="rounded-md border border-slate-300 px-3 py-2 text-left text-sm font-medium text-slate-600 hover:bg-slate-100">Logout</button>
+          }
+        </nav>
+      </div>
+    }
   </header>
 
   <main class="mx-auto w-full max-w-5xl px-4 py-4 sm:px-6 sm:py-6">
@@ -62,8 +100,6 @@
   </main>
 
   <footer class="border-t border-slate-200 bg-white">
-    <p class="mx-auto w-full max-w-5xl px-4 py-3 text-center text-xs text-slate-500 sm:px-6">
-      © 2026 Fuel Report App
-    </p>
+    <p class="mx-auto w-full max-w-5xl px-4 py-3 text-center text-xs text-slate-500 sm:px-6">© 2026 Fuel Report App</p>
   </footer>
 </div>

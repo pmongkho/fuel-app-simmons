@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from './core/auth.service';
 
@@ -16,8 +16,18 @@ export class App {
   readonly canAccessTrailers = computed(() => this.auth.hasRole('Employee', 'Supervisor', 'Admin'));
   readonly canAccessSupervisor = computed(() => this.auth.hasRole('Supervisor', 'Admin'));
   readonly canAccessAdmin = computed(() => this.auth.hasRole('Admin'));
+  readonly mobileNavOpen = signal(false);
+
+  toggleMobileNav(): void {
+    this.mobileNavOpen.update((isOpen) => !isOpen);
+  }
+
+  closeMobileNav(): void {
+    this.mobileNavOpen.set(false);
+  }
 
   logout() {
+    this.closeMobileNav();
     this.auth.logout();
   }
 }
