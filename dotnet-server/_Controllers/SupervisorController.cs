@@ -125,7 +125,7 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
             entry.GallonsPumped,
             entry.FuelingTankLevelStart,
             entry.FuelingTankLevelEnd,
-            entry.Notes,
+            notes = entry.Trailer != null ? entry.Trailer.Notes : null,
             verificationStatus = entry.VerificationStatus.ToString(),
             entry.EnteredAtUtc,
             enteredBy = entry.EnteredByUser != null ? entry.EnteredByUser.FullName : string.Empty,
