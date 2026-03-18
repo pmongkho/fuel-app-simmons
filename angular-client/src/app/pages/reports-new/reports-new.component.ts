@@ -97,7 +97,7 @@ export class ReportsNewComponent implements OnInit {
       const createReportResponse = await firstValueFrom(
         this.http.post<{ id: number; status: string }>(
           `${environment.apiBaseUrl}/reports`,
-          { reportDate: new Date(this.reportDate).toISOString() },
+          { reportDate: this.reportDate },
           { headers: this.auth.authHeaders() }
         )
       );

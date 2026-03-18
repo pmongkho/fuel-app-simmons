@@ -84,7 +84,7 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
         var entry = new FuelEntry
         {
             FuelReportId = reportId,
-            TrailerId = trailer!.Id,
+            Trailer = trailer,
             FuelType = fuelType,
             FuelingTankLevelStart = request.FuelingTankLevelStart,
             FuelingTankLevelEnd = request.FuelingTankLevelEnd,
@@ -116,7 +116,7 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
         if (!CanModifyEntry(entry)) return Forbid();
         if (entry.VerificationStatus == VerificationStatus.Approved && !User.IsInRole(nameof(UserRole.Admin))) return BadRequest("Approved entries cannot be edited");
 
-        entry.TrailerId = trailer!.Id;
+        entry.Trailer = trailer;
         entry.FuelType = fuelType;
         entry.FuelingTankLevelStart = request.FuelingTankLevelStart;
         entry.FuelingTankLevelEnd = request.FuelingTankLevelEnd;
