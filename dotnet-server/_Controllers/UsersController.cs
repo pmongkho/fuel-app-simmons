@@ -60,4 +60,51 @@ public class UsersController(AppDbContext dbContext, UserManager<User> userManag
         await dbContext.SaveChangesAsync();
         return Ok();
     }
+
+    [HttpPut("{id:int}/email")]
+    public async Task<IActionResult> UpdateEmail(int id, [FromBody] UpdateUserEmailRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email)) return BadRequest("Email is required");
+
+        var normalizedEmail = request.Email.Trim();
+        var user = await userManager.FindByIdAsync(id.ToString());
+        if (user is null) return NotFound();
+
+        var existingUser = await userManager.FindByEmailAsync(normalizedEmail);
+        if (existingUser is not null && existingUser.Id != user.Id)
+        {
+            return BadRequest("Email is already in use");
+        }
+
+        user.Email = normalizedEmail;
+        user.UserName = normalizedEmail;
+        user.NormalizedEmail = userManager.NormalizeEmail(normalizedEmail);
+        user.NormalizedUserName = userManager.NormalizeName(normalizedEmail);
+
+        var result = await userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            return BadRequest(new { errors = result.Errors.Select(e => e.Description).ToList() });
+        }
+
+        return Ok();
+    }
+
+    [HttpPut("{id:int}/password")]
+    public async Task<IActionResult> UpdatePassword(int id, [FromBody] UpdateUserPasswordRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.NewPassword)) return BadRequest("NewPassword is required");
+
+        var user = await userManager.FindByIdAsync(id.ToString());
+        if (user is null) return NotFound();
+
+        var resetToken = await userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await userManager.ResetPasswordAsync(user, resetToken, request.NewPassword);
+        if (!result.Succeeded)
+        {
+            return BadRequest(new { errors = result.Errors.Select(e => e.Description).ToList() });
+        }
+
+        return Ok();
+    }
 }

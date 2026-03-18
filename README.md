@@ -53,3 +53,8 @@ Set these in Render for the .NET API service:
 
 Angular production API URL is hardcoded in `angular-client/src/environments/environment.production.ts` to:
 - `https://fuel-app-simmons.onrender.com/api`
+
+## Backend production cleanup
+
+For production database cleanup / admin SQL commands, see:
+- `dotnet-server/docs/production-sql.md`
