@@ -2,7 +2,7 @@ namespace dotnet_server.Application.DTOs;
 
 public class CreateReportRequest
 {
-    public DateTime ReportDate { get; set; }
+    public DateOnly ReportDate { get; set; }
 }
 
 public class CreateFuelEntryRequest
@@ -21,11 +21,14 @@ public class CreateFuelEntryRequest
 public class ApproveEntryRequest
 {
     public string SignatureName { get; set; } = string.Empty;
+    public string SignaturePin { get; set; } = string.Empty;
 }
 
 public class RejectEntryRequest
 {
     public string RejectionReason { get; set; } = string.Empty;
+    public string SignatureName { get; set; } = string.Empty;
+    public string SignaturePin { get; set; } = string.Empty;
 }
 
 public class CreateUserRequest

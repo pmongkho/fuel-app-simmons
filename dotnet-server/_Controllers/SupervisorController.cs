@@ -181,6 +181,7 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
         entry.VerificationStatus = VerificationStatus.Rejected;
         entry.VerifiedBySupervisorId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         entry.VerifiedAtUtc = DateTime.UtcNow;
+        entry.SupervisorSignatureName = request.SignatureName;
         entry.RejectionReason = request.RejectionReason;
 
         ReportTotalsService.Recalculate(entry.FuelReport!);
