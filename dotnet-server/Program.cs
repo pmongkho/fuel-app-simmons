@@ -3,6 +3,7 @@ using dotnet_server._Data;
 using dotnet_server.Application.Services;
 using dotnet_server.Domain.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
