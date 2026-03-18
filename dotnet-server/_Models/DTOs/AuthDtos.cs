@@ -16,3 +16,7 @@ public class UserDto
     public string Email { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
 }
+
+public record UpdateUserEmailRequest(string Email);
+
+public record UpdateUserPasswordRequest(string NewPassword);
