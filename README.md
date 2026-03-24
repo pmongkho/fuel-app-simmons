@@ -54,6 +54,17 @@ Set these in Render for the .NET API service:
 - `Resend__FromEmail` = verified sender email/domain in Resend
 - `Resend__FromName` = optional sender display name, for example `Fuel App`
 
+These values are read from the app settings configuration (`Resend` section).
+
+### Resend without your own domain (quick test mode)
+
+If you do not have a domain yet, in **Development** the backend defaults the sender to:
+- `onboarding@resend.dev`
+
+This allows quick testing with just an API key. In this mode, Resend typically only delivers to your own Resend account email until you verify a domain/sender.
+
+In **non-development environments** (production/staging), the API now requires `FromEmail` to be configured. If missing, sends are skipped and logged so you do not silently route through onboarding mode.
+
 Angular production API URL is hardcoded in `angular-client/src/environments/environment.production.ts` to:
 - `https://fuel-app-simmons.onrender.com/api`
 
