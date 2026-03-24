@@ -34,6 +34,8 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
             x.Id,
             reportId = x.FuelReport!.Id,
             reportDate = x.FuelReport!.ReportDate,
+            reportFuelingTankLevelStart = x.FuelReport!.FuelingTankLevelStart,
+            reportFuelingTankLevelEnd = x.FuelReport!.FuelingTankLevelEnd,
             reportCreatedByUserId = x.FuelReport!.CreatedByUserId,
             reportStatus = x.FuelReport!.Status.ToString(),
             reportTotalRedDiesel = x.FuelReport!.TotalRedDiesel,
@@ -42,6 +44,8 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
             reportOverallTotalGallons = x.FuelReport!.OverallTotalGallons,
             reportCreatedAtUtc = x.FuelReport!.CreatedAtUtc,
             reportSubmittedAtUtc = x.FuelReport!.SubmittedAtUtc,
+            reportStartGaugeSignedBySupervisorId = x.FuelReport!.StartGaugeSignedBySupervisorId,
+            reportEndGaugeSignedBySupervisorId = x.FuelReport!.EndGaugeSignedBySupervisorId,
             reportEntriesCount = x.FuelReport!.Entries.Count,
             employee = x.EnteredByUser!.FullName,
             trailerNumber = x.Trailer != null ? x.Trailer.TrailerNumber : string.Empty,
@@ -79,6 +83,14 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
             report.TotalClearDiesel,
             report.TotalDef,
             report.OverallTotalGallons,
+            report.FuelingTankLevelStart,
+            report.FuelingTankLevelEnd,
+            report.StartGaugeSignedBySupervisorId,
+            report.StartGaugeSignedAtUtc,
+            report.StartGaugeSupervisorSignatureName,
+            report.EndGaugeSignedBySupervisorId,
+            report.EndGaugeSignedAtUtc,
+            report.EndGaugeSupervisorSignatureName,
             report.CreatedAtUtc,
             report.SubmittedAtUtc,
             entriesCount = report.Entries.Count,
@@ -89,8 +101,6 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
                     x.Id,
                     fuelType = x.FuelType.ToString(),
                     x.GallonsPumped,
-                    x.FuelingTankLevelStart,
-                    x.FuelingTankLevelEnd,
                     verificationStatus = x.VerificationStatus.ToString(),
                     x.EnteredAtUtc,
                     enteredBy = x.EnteredByUser != null ? x.EnteredByUser.FullName : string.Empty,
@@ -123,8 +133,6 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
             entry.Id,
             fuelType = entry.FuelType.ToString(),
             entry.GallonsPumped,
-            entry.FuelingTankLevelStart,
-            entry.FuelingTankLevelEnd,
             notes = entry.Trailer != null ? entry.Trailer.Notes : null,
             verificationStatus = entry.VerificationStatus.ToString(),
             entry.EnteredAtUtc,
@@ -134,6 +142,8 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
             {
                 entry.FuelReport.Id,
                 entry.FuelReport.ReportDate,
+                entry.FuelReport.FuelingTankLevelStart,
+                entry.FuelReport.FuelingTankLevelEnd,
                 createdBy = entry.FuelReport.CreatedByUser != null ? entry.FuelReport.CreatedByUser.FullName : string.Empty,
                 status = entry.FuelReport.Status.ToString(),
                 entriesCount = entry.FuelReport.Entries.Count
@@ -145,8 +155,6 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
                     reportEntry.Id,
                     fuelType = reportEntry.FuelType.ToString(),
                     reportEntry.GallonsPumped,
-                    reportEntry.FuelingTankLevelStart,
-                    reportEntry.FuelingTankLevelEnd,
                     verificationStatus = reportEntry.VerificationStatus.ToString(),
                     reportEntry.EnteredAtUtc,
                     enteredBy = reportEntry.EnteredByUser != null ? reportEntry.EnteredByUser.FullName : string.Empty,
@@ -187,5 +195,44 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
         ReportTotalsService.Recalculate(entry.FuelReport!);
         await dbContext.SaveChangesAsync();
         return Ok(new { message = "Entry rejected." });
+    }
+
+    [HttpPost("reports/{reportId:int}/signoff-start")]
+    public async Task<IActionResult> SignOffStartGauge(int reportId, [FromBody] SignOffReportGaugeRequest request)
+    {
+        var report = await dbContext.FuelReports.FindAsync(reportId);
+        if (report is null) return NotFound();
+
+        var supervisorId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        report.StartGaugeSignedBySupervisorId = supervisorId;
+        report.StartGaugeSupervisorSignatureName = request.SignatureName;
+        report.StartGaugeSignedAtUtc = DateTime.UtcNow;
+        await dbContext.SaveChangesAsync();
+
+        return Ok(new { message = "Start gauge signed successfully." });
+    }
+
+    [HttpPost("reports/{reportId:int}/signoff-end")]
+    public async Task<IActionResult> SignOffEndGauge(int reportId, [FromBody] SignOffReportGaugeRequest request)
+    {
+        var report = await dbContext.FuelReports.FindAsync(reportId);
+        if (report is null) return NotFound();
+
+        var supervisorId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (report.StartGaugeSignedBySupervisorId is null)
+            return BadRequest("Start gauge sign-off is required before end gauge sign-off.");
+        if (report.StartGaugeSignedBySupervisorId == supervisorId)
+            return BadRequest("End gauge sign-off must be completed by a different supervisor.");
+
+        report.EndGaugeSignedBySupervisorId = supervisorId;
+        report.EndGaugeSupervisorSignatureName = request.SignatureName;
+        report.EndGaugeSignedAtUtc = DateTime.UtcNow;
+
+        if (report.Status == FuelReportStatus.Submitted)
+            report.Status = FuelReportStatus.Completed;
+
+        await dbContext.SaveChangesAsync();
+
+        return Ok(new { message = "End gauge signed successfully." });
     }
 }

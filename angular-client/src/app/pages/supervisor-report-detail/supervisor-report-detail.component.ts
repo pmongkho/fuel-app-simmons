@@ -1,6 +1,7 @@
 import { DatePipe, NgFor, NgIf } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, ParamMap, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { environment } from '../../../environments/environment';
@@ -9,8 +10,6 @@ interface FuelEntryDetail {
   id: number;
   fuelType: string;
   gallonsPumped: number;
-  fuelingTankLevelStart: number | null;
-  fuelingTankLevelEnd: number | null;
   verificationStatus: string;
   enteredAtUtc: string;
   enteredBy: string;
@@ -28,6 +27,14 @@ interface FuelReportDetail {
   totalClearDiesel: number;
   totalDef: number;
   overallTotalGallons: number;
+  fuelingTankLevelStart: number;
+  fuelingTankLevelEnd: number;
+  startGaugeSignedBySupervisorId: number | null;
+  startGaugeSignedAtUtc: string | null;
+  startGaugeSupervisorSignatureName: string | null;
+  endGaugeSignedBySupervisorId: number | null;
+  endGaugeSignedAtUtc: string | null;
+  endGaugeSupervisorSignatureName: string | null;
   createdAtUtc: string;
   submittedAtUtc: string | null;
   entriesCount: number;
@@ -37,7 +44,7 @@ interface FuelReportDetail {
 @Component({
   selector: 'app-supervisor-report-detail',
   standalone: true,
-  imports: [NgIf, NgFor, RouterLink, DatePipe],
+  imports: [NgIf, NgFor, RouterLink, DatePipe, FormsModule],
   templateUrl: './supervisor-report-detail.component.html',
   styleUrl: './supervisor-report-detail.component.css',
 })
@@ -49,6 +56,12 @@ export class SupervisorReportDetailComponent implements OnInit {
   report: FuelReportDetail | null = null;
   isLoading = true;
   errorMessage: string | null = null;
+  startSignatureName = '';
+  startSignaturePin = '';
+  endSignatureName = '';
+  endSignaturePin = '';
+  actionMessage: string | null = null;
+  isSubmitting = false;
 
   ngOnInit(): void {
     this.route.paramMap.subscribe((params: ParamMap) => {
@@ -70,6 +83,10 @@ export class SupervisorReportDetailComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = null;
 
+    this.loadReportById(reportId);
+  }
+
+  private loadReportById(reportId: number): void {
     this.http
       .get<FuelReportDetail>(`${environment.apiBaseUrl}/supervisor/reports/${reportId}`, { headers: this.auth.authHeaders() })
       .subscribe({
@@ -81,6 +98,58 @@ export class SupervisorReportDetailComponent implements OnInit {
           this.report = null;
           this.errorMessage = error.status === 404 ? 'Report not found.' : 'Unable to load report details.';
           this.isLoading = false;
+        },
+      });
+  }
+
+  signOffStartGauge(): void {
+    if (!this.report || this.startSignatureName.trim().length < 3 || this.startSignaturePin.trim().length < 4 || this.isSubmitting) {
+      return;
+    }
+
+    this.isSubmitting = true;
+    this.actionMessage = null;
+    this.http
+      .post(
+        `${environment.apiBaseUrl}/supervisor/reports/${this.report.id}/signoff-start`,
+        { signatureName: this.startSignatureName, signaturePin: this.startSignaturePin },
+        { headers: this.auth.authHeaders() },
+      )
+      .subscribe({
+        next: () => {
+          this.actionMessage = 'Start gauge sign-off saved.';
+          this.loadReportById(this.report!.id);
+          this.isSubmitting = false;
+        },
+        error: () => {
+          this.actionMessage = 'Unable to sign off start gauge right now.';
+          this.isSubmitting = false;
+        },
+      });
+  }
+
+  signOffEndGauge(): void {
+    if (!this.report || this.endSignatureName.trim().length < 3 || this.endSignaturePin.trim().length < 4 || this.isSubmitting) {
+      return;
+    }
+
+    this.isSubmitting = true;
+    this.actionMessage = null;
+    this.http
+      .post(
+        `${environment.apiBaseUrl}/supervisor/reports/${this.report.id}/signoff-end`,
+        { signatureName: this.endSignatureName, signaturePin: this.endSignaturePin },
+        { headers: this.auth.authHeaders() },
+      )
+      .subscribe({
+        next: () => {
+          this.actionMessage = 'End gauge sign-off saved.';
+          this.loadReportById(this.report!.id);
+          this.isSubmitting = false;
+        },
+        error: (error) => {
+          this.actionMessage = typeof error?.error === 'string' ? error.error : 'Unable to sign off end gauge right now.';
+          this.isSubmitting = false;
         },
       });
   }

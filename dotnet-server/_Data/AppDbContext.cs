@@ -29,6 +29,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             .HasForeignKey(x => x.CreatedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        modelBuilder.Entity<FuelReport>()
+            .HasOne(x => x.StartGaugeSignedBySupervisor)
+            .WithMany()
+            .HasForeignKey(x => x.StartGaugeSignedBySupervisorId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<FuelReport>()
+            .HasOne(x => x.EndGaugeSignedBySupervisor)
+            .WithMany()
+            .HasForeignKey(x => x.EndGaugeSignedBySupervisorId)
+            .OnDelete(DeleteBehavior.Restrict);
+
 
         modelBuilder.Entity<Trailer>()
             .HasIndex(x => x.TrailerNumber)

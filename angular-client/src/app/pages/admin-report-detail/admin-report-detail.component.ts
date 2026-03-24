@@ -9,8 +9,6 @@ interface FuelEntryDetail {
   id: number;
   fuelType: string;
   gallonsPumped: number;
-  fuelingTankLevelStart: number | null;
-  fuelingTankLevelEnd: number | null;
   verificationStatus: string;
   enteredAtUtc: string;
   enteredBy: string;
@@ -27,6 +25,14 @@ interface FuelReportDetail {
   totalClearDiesel: number;
   totalDef: number;
   overallTotalGallons: number;
+  fuelingTankLevelStart: number;
+  fuelingTankLevelEnd: number;
+  startGaugeSignedBySupervisorId: number | null;
+  startGaugeSignedAtUtc: string | null;
+  startGaugeSupervisorSignatureName: string | null;
+  endGaugeSignedBySupervisorId: number | null;
+  endGaugeSignedAtUtc: string | null;
+  endGaugeSupervisorSignatureName: string | null;
   submittedAtUtc: string | null;
   entries: FuelEntryDetail[];
 }

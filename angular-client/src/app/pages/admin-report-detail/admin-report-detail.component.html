@@ -11,6 +11,8 @@
       <div class="rounded-lg border border-slate-200 p-3">Clear Diesel: <strong>{{ currentReport.totalClearDiesel }} gal</strong></div>
       <div class="rounded-lg border border-slate-200 p-3">DEF: <strong>{{ currentReport.totalDef }} gal</strong></div>
       <div class="rounded-lg border border-slate-200 p-3">Overall: <strong>{{ currentReport.overallTotalGallons }} gal</strong></div>
+      <div class="rounded-lg border border-slate-200 p-3">Overall Tank Start: <strong>{{ currentReport.fuelingTankLevelStart }}</strong></div>
+      <div class="rounded-lg border border-slate-200 p-3">Overall Tank End: <strong>{{ currentReport.fuelingTankLevelEnd }}</strong></div>
     </div>
   </div>
 
@@ -23,8 +25,6 @@
             <th class="px-2 py-2 font-medium">Time</th>
             <th class="px-2 py-2 font-medium">Entered By</th>
             <th class="px-2 py-2 font-medium">Trailer #</th>
-            <th class="px-2 py-2 font-medium">Tank Start</th>
-            <th class="px-2 py-2 font-medium">Tank End</th>
             <th class="px-2 py-2 font-medium">Gallons</th>
             <th class="px-2 py-2 font-medium">Fuel Type</th>
             <th class="px-2 py-2 font-medium">Photos</th>
@@ -35,8 +35,6 @@
             <td class="px-2 py-2">{{ entry.enteredAtUtc | date: 'shortTime' }}</td>
             <td class="px-2 py-2">{{ entry.enteredBy }}</td>
             <td class="px-2 py-2">{{ entry.trailerNumber }}</td>
-            <td class="px-2 py-2">{{ entry.fuelingTankLevelStart ?? '-' }}</td>
-            <td class="px-2 py-2">{{ entry.fuelingTankLevelEnd ?? '-' }}</td>
             <td class="px-2 py-2">{{ entry.gallonsPumped }}</td>
             <td class="px-2 py-2">{{ entry.fuelType }}</td>
             <td class="px-2 py-2">{{ entry.photoCount }}</td>

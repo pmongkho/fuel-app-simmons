@@ -3,6 +3,8 @@ namespace dotnet_server.Application.DTOs;
 public class CreateReportRequest
 {
     public DateOnly ReportDate { get; set; }
+    public int? FuelingTankLevelStart { get; set; }
+    public int? FuelingTankLevelEnd { get; set; }
 }
 
 public class CreateFuelEntryRequest
@@ -13,9 +15,13 @@ public class CreateFuelEntryRequest
     public bool HasMechanicalIssues { get; set; }
     public string? TrailerNotes { get; set; }
     public string FuelType { get; set; } = string.Empty;
-    public int? FuelingTankLevelStart { get; set; }
-    public int? FuelingTankLevelEnd { get; set; }
     public decimal GallonsPumped { get; set; }
+}
+
+public class SignOffReportGaugeRequest
+{
+    public string SignatureName { get; set; } = string.Empty;
+    public string SignaturePin { get; set; } = string.Empty;
 }
 
 public class ApproveEntryRequest
