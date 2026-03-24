@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using dotnet_server._Data;
 using dotnet_server.Domain.Entities;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -11,10 +12,11 @@ namespace dotnet_server.Application.Services;
 public sealed class ResendOptions
 {
     public const string SectionName = "Resend";
+    public const string DefaultFromEmail = "onboarding@resend.dev";
 
     public string ApiKey { get; set; } = string.Empty;
     public string BaseUrl { get; set; } = "https://api.resend.com";
-    public string FromEmail { get; set; } = string.Empty;
+    public string FromEmail { get; set; } = DefaultFromEmail;
     public string FromName { get; set; } = "Fuel App";
 }
 
@@ -58,6 +60,7 @@ public class EmailService(
     AppDbContext dbContext,
     HttpClient httpClient,
     IOptions<ResendOptions> resendOptions,
+    IWebHostEnvironment environment,
     ILogger<EmailService> logger)
 {
     public async Task SendReportSubmittedAsync(FuelReport report, string employeeName)
@@ -70,9 +73,9 @@ public class EmailService(
         }
 
         var options = resendOptions.Value;
-        if (string.IsNullOrWhiteSpace(options.ApiKey) || string.IsNullOrWhiteSpace(options.FromEmail))
+        if (string.IsNullOrWhiteSpace(options.ApiKey))
         {
-            logger.LogWarning("Resend is not configured. Missing ApiKey or FromEmail.");
+            logger.LogWarning("Resend is not configured. Missing ApiKey.");
 
             foreach (var recipient in recipients)
             {
@@ -82,13 +85,42 @@ public class EmailService(
                     RecipientEmail = recipient.Email,
                     Subject = BuildSubject(report),
                     Status = "Skipped",
-                    ErrorMessage = "Resend is not configured.",
+                    ErrorMessage = "Resend is not configured (missing ApiKey).",
                     SentAtUtc = DateTime.UtcNow
                 });
             }
 
             await dbContext.SaveChangesAsync();
             return;
+        }
+
+        if (string.IsNullOrWhiteSpace(options.FromEmail))
+        {
+            if (environment.IsDevelopment())
+            {
+                options.FromEmail = ResendOptions.DefaultFromEmail;
+                logger.LogWarning("Resend FromEmail was empty. Using development fallback sender {DefaultFromEmail}.", ResendOptions.DefaultFromEmail);
+            }
+            else
+            {
+                logger.LogWarning("Resend is not configured. Missing FromEmail in non-development environment.");
+
+                foreach (var recipient in recipients)
+                {
+                    dbContext.EmailLogs.Add(new EmailLog
+                    {
+                        FuelReportId = report.Id,
+                        RecipientEmail = recipient.Email,
+                        Subject = BuildSubject(report),
+                        Status = "Skipped",
+                        ErrorMessage = "Resend is not configured (missing FromEmail).",
+                        SentAtUtc = DateTime.UtcNow
+                    });
+                }
+
+                await dbContext.SaveChangesAsync();
+                return;
+            }
         }
 
         httpClient.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
