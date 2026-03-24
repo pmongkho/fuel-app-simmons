@@ -10,8 +10,6 @@ public class FuelEntry
     public int? TrailerId { get; set; }
     public Trailer? Trailer { get; set; }
     public FuelType FuelType { get; set; }
-    public int? FuelingTankLevelStart { get; set; }
-    public int? FuelingTankLevelEnd { get; set; }
     public decimal GallonsPumped { get; set; }
     public int EnteredByUserId { get; set; }
     public User? EnteredByUser { get; set; }

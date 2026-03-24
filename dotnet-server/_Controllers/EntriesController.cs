@@ -58,21 +58,10 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
         return (trailer, null);
     }
 
-    private static bool TankLevelsMatchGallonsPumped(CreateFuelEntryRequest request)
-    {
-        if (request.FuelingTankLevelStart is null || request.FuelingTankLevelEnd is null) return false;
-        var expectedGallons = request.FuelingTankLevelEnd.Value - request.FuelingTankLevelStart.Value;
-        return expectedGallons == request.GallonsPumped;
-    }
-
     [HttpPost("reports/{reportId:int}/entries")]
     public async Task<IActionResult> CreateEntry(int reportId, [FromBody] CreateFuelEntryRequest request)
     {
         if (!Enum.TryParse<FuelType>(request.FuelType, true, out var fuelType)) return BadRequest("Invalid fuel type");
-        if (request.FuelingTankLevelStart is < 0 or > 999999 || request.FuelingTankLevelEnd is < 0 or > 999999)
-            return BadRequest("Fueling tank levels must be between 0 and 999999.");
-        if (!TankLevelsMatchGallonsPumped(request))
-            return BadRequest("Fueling tank start and finish must match gallons pumped (finish - start = gallons pumped).");
 
         var (trailer, trailerErrorResult) = await ResolveAndUpdateTrailerAsync(request);
         if (trailerErrorResult is not null) return trailerErrorResult;
@@ -86,8 +75,6 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
             FuelReportId = reportId,
             Trailer = trailer,
             FuelType = fuelType,
-            FuelingTankLevelStart = request.FuelingTankLevelStart,
-            FuelingTankLevelEnd = request.FuelingTankLevelEnd,
             GallonsPumped = request.GallonsPumped,
             EnteredByUserId = CurrentUserId,
             EnteredAtUtc = DateTime.UtcNow
@@ -103,10 +90,6 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
     public async Task<IActionResult> EditEntry(int entryId, [FromBody] CreateFuelEntryRequest request)
     {
         if (!Enum.TryParse<FuelType>(request.FuelType, true, out var fuelType)) return BadRequest("Invalid fuel type");
-        if (request.FuelingTankLevelStart is < 0 or > 999999 || request.FuelingTankLevelEnd is < 0 or > 999999)
-            return BadRequest("Fueling tank levels must be between 0 and 999999.");
-        if (!TankLevelsMatchGallonsPumped(request))
-            return BadRequest("Fueling tank start and finish must match gallons pumped (finish - start = gallons pumped).");
 
         var (trailer, trailerErrorResult) = await ResolveAndUpdateTrailerAsync(request);
         if (trailerErrorResult is not null) return trailerErrorResult;
@@ -118,8 +101,6 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
 
         entry.Trailer = trailer;
         entry.FuelType = fuelType;
-        entry.FuelingTankLevelStart = request.FuelingTankLevelStart;
-        entry.FuelingTankLevelEnd = request.FuelingTankLevelEnd;
         entry.GallonsPumped = request.GallonsPumped;
 
         ReportTotalsService.Recalculate(entry.FuelReport!);

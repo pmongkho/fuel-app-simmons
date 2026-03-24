@@ -37,11 +37,20 @@ public class ReportsController(AppDbContext dbContext, EmailService emailService
     [Authorize(Roles = $"{nameof(UserRole.Employee)},{nameof(UserRole.Supervisor)},{nameof(UserRole.Admin)}")]
     public async Task<IActionResult> Create([FromBody] CreateReportRequest request)
     {
+        if (request.FuelingTankLevelStart is null || request.FuelingTankLevelEnd is null)
+            return BadRequest("Overall fueling tank start and end are required.");
+        if (request.FuelingTankLevelStart is < 0 or > 999999 || request.FuelingTankLevelEnd is < 0 or > 999999)
+            return BadRequest("Overall fueling tank levels must be between 0 and 999999.");
+        if (request.FuelingTankLevelEnd < request.FuelingTankLevelStart)
+            return BadRequest("Overall fueling tank end must be greater than or equal to start.");
+
         var userId = CurrentUserId;
         var report = new FuelReport
         {
             ReportDate = request.ReportDate,
             CreatedByUserId = userId,
+            FuelingTankLevelStart = request.FuelingTankLevelStart.Value,
+            FuelingTankLevelEnd = request.FuelingTankLevelEnd.Value,
             CreatedAtUtc = DateTime.UtcNow
         };
         dbContext.FuelReports.Add(report);
@@ -70,6 +79,8 @@ public class ReportsController(AppDbContext dbContext, EmailService emailService
                     x.ReportDate,
                     createdBy = x.CreatedByUser != null ? x.CreatedByUser.FullName : string.Empty,
                     status = x.Status.ToString(),
+                    x.FuelingTankLevelStart,
+                    x.FuelingTankLevelEnd,
                     x.OverallTotalGallons,
                     x.CreatedAtUtc,
                     x.SubmittedAtUtc
@@ -86,6 +97,8 @@ public class ReportsController(AppDbContext dbContext, EmailService emailService
                 x.Id,
                 x.ReportDate,
                 status = x.Status.ToString(),
+                x.FuelingTankLevelStart,
+                x.FuelingTankLevelEnd,
                 x.OverallTotalGallons,
                 x.CreatedAtUtc,
                 x.SubmittedAtUtc
@@ -99,8 +112,16 @@ public class ReportsController(AppDbContext dbContext, EmailService emailService
         var report = await dbContext.FuelReports.FindAsync(id);
         if (report is null) return NotFound();
         if (!CanAccessAllReports() && report.CreatedByUserId != CurrentUserId) return Forbid();
+        if (request.FuelingTankLevelStart is null || request.FuelingTankLevelEnd is null)
+            return BadRequest("Overall fueling tank start and end are required.");
+        if (request.FuelingTankLevelStart is < 0 or > 999999 || request.FuelingTankLevelEnd is < 0 or > 999999)
+            return BadRequest("Overall fueling tank levels must be between 0 and 999999.");
+        if (request.FuelingTankLevelEnd < request.FuelingTankLevelStart)
+            return BadRequest("Overall fueling tank end must be greater than or equal to start.");
 
         report.ReportDate = request.ReportDate;
+        report.FuelingTankLevelStart = request.FuelingTankLevelStart.Value;
+        report.FuelingTankLevelEnd = request.FuelingTankLevelEnd.Value;
         await dbContext.SaveChangesAsync();
         return Ok();
     }
@@ -113,9 +134,13 @@ public class ReportsController(AppDbContext dbContext, EmailService emailService
         if (!CanAccessAllReports() && report.CreatedByUserId != CurrentUserId) return Forbid();
         if (report.Entries.Count == 0) return BadRequest("Report must have entries");
 
+        ReportTotalsService.Recalculate(report);
+        var expectedTotalGallons = report.FuelingTankLevelEnd - report.FuelingTankLevelStart;
+        if (expectedTotalGallons != report.OverallTotalGallons)
+            return BadRequest("Overall fueling tank levels must match total gallons pumped on entries.");
+
         report.Status = FuelReportStatus.Submitted;
         report.SubmittedAtUtc = DateTime.UtcNow;
-        ReportTotalsService.Recalculate(report);
         await dbContext.SaveChangesAsync();
 
         var employee = await dbContext.Users.FindAsync(report.CreatedByUserId);

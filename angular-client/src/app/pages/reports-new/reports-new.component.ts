@@ -11,8 +11,6 @@ interface Entry {
   trailerNumber: string;
   fuelType: 'RedDiesel' | 'ClearDiesel' | 'Def';
   trailerTankFull: boolean;
-  fuelingTankLevelStart: number | null;
-  fuelingTankLevelEnd: number | null;
   gallonsPumped: number | null;
   hasMechanicalIssues: boolean;
   notes: string;
@@ -33,6 +31,8 @@ export class ReportsNewComponent implements OnInit {
   private readonly reportDraftStorageKey = 'fuel_report_draft';
 
   reportDate = new Date().toISOString().slice(0, 10);
+  overallFuelingTankLevelStart: number | null = null;
+  overallFuelingTankLevelEnd: number | null = null;
   readonly submitInProgress = signal(false);
   readonly submitMessage = signal<string | null>(null);
 
@@ -48,14 +48,6 @@ export class ReportsNewComponent implements OnInit {
     this.restoreDraft();
   }
 
-  private fuelingLevelsMatchGallons(entry: Entry): boolean {
-    if (entry.fuelingTankLevelStart === null || entry.fuelingTankLevelEnd === null || entry.gallonsPumped === null) {
-      return false;
-    }
-
-    return entry.fuelingTankLevelEnd - entry.fuelingTankLevelStart === entry.gallonsPumped;
-  }
-
   saveEntry() {
     this.submitMessage.set(null);
 
@@ -64,8 +56,8 @@ export class ReportsNewComponent implements OnInit {
       return;
     }
 
-    if (!this.fuelingLevelsMatchGallons(this.entry)) {
-      window.alert('Fueling tank start and finish must match gallons pumped (finish - start = gallons pumped).');
+    if (this.entry.gallonsPumped === null || this.entry.gallonsPumped < 0) {
+      window.alert('Please enter a valid gallons pumped value before adding an entry.');
       return;
     }
 
@@ -91,13 +83,27 @@ export class ReportsNewComponent implements OnInit {
       return;
     }
 
+    if (this.overallFuelingTankLevelStart === null || this.overallFuelingTankLevelEnd === null) {
+      this.submitMessage.set('Enter overall fueling tank start and end before submitting.');
+      return;
+    }
+
+    if (this.overallFuelingTankLevelEnd - this.overallFuelingTankLevelStart !== this.overallTotal()) {
+      this.submitMessage.set('Overall fueling tank end minus start must match the report total gallons.');
+      return;
+    }
+
     this.submitInProgress.set(true);
 
     try {
       const createReportResponse = await firstValueFrom(
         this.http.post<{ id: number; status: string }>(
           `${environment.apiBaseUrl}/reports`,
-          { reportDate: this.reportDate },
+          {
+            reportDate: this.reportDate,
+            fuelingTankLevelStart: this.overallFuelingTankLevelStart,
+            fuelingTankLevelEnd: this.overallFuelingTankLevelEnd,
+          },
           { headers: this.auth.authHeaders() }
         )
       );
@@ -112,8 +118,6 @@ export class ReportsNewComponent implements OnInit {
               hasMechanicalIssues: currentEntry.hasMechanicalIssues,
               trailerNotes: currentEntry.notes,
               fuelType: currentEntry.fuelType,
-              fuelingTankLevelStart: currentEntry.fuelingTankLevelStart,
-              fuelingTankLevelEnd: currentEntry.fuelingTankLevelEnd,
               gallonsPumped: currentEntry.gallonsPumped,
             },
             { headers: this.auth.authHeaders() }
@@ -150,8 +154,6 @@ export class ReportsNewComponent implements OnInit {
       trailerNumber: '',
       fuelType: 'RedDiesel',
       trailerTankFull: false,
-      fuelingTankLevelStart: null,
-      fuelingTankLevelEnd: null,
       gallonsPumped: null,
       hasMechanicalIssues: false,
       notes: '',
@@ -162,6 +164,8 @@ export class ReportsNewComponent implements OnInit {
   private persistDraft() {
     const payload = {
       reportDate: this.reportDate,
+      overallFuelingTankLevelStart: this.overallFuelingTankLevelStart,
+      overallFuelingTankLevelEnd: this.overallFuelingTankLevelEnd,
       entry: this.entry,
       entries: this.entries(),
     };
@@ -176,9 +180,21 @@ export class ReportsNewComponent implements OnInit {
     }
 
     try {
-      const parsedDraft = JSON.parse(rawDraft) as { reportDate?: string; entry?: Entry; entries?: Entry[] };
+      const parsedDraft = JSON.parse(rawDraft) as {
+        reportDate?: string;
+        overallFuelingTankLevelStart?: number | null;
+        overallFuelingTankLevelEnd?: number | null;
+        entry?: Entry;
+        entries?: Entry[];
+      };
       if (parsedDraft.reportDate) {
         this.reportDate = parsedDraft.reportDate;
+      }
+      if (typeof parsedDraft.overallFuelingTankLevelStart === 'number') {
+        this.overallFuelingTankLevelStart = parsedDraft.overallFuelingTankLevelStart;
+      }
+      if (typeof parsedDraft.overallFuelingTankLevelEnd === 'number') {
+        this.overallFuelingTankLevelEnd = parsedDraft.overallFuelingTankLevelEnd;
       }
 
       if (parsedDraft.entry) {
