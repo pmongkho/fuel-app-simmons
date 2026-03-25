@@ -144,8 +144,14 @@ using (var scope = app.Services.CreateScope())
     {
         db.Database.Migrate();
 
-        var shouldSeed = builder.Configuration.GetValue<bool?>("EnableStartupSeeding")
-            ?? app.Environment.IsDevelopment();
+        var configuredShouldSeed = builder.Configuration.GetValue<bool?>("EnableStartupSeeding");
+
+        var databaseLooksEmpty = !await db.Users.AsNoTracking().AnyAsync()
+            && !await db.Trailers.AsNoTracking().AnyAsync()
+            && !await db.FuelReports.AsNoTracking().AnyAsync();
+
+        var shouldSeed = configuredShouldSeed
+            ?? (app.Environment.IsDevelopment() || databaseLooksEmpty);
 
         if (shouldSeed)
         {
@@ -154,7 +160,11 @@ using (var scope = app.Services.CreateScope())
         }
         else
         {
-            app.Logger.LogInformation("Database migrations applied. Startup seed data is disabled.");
+            app.Logger.LogInformation(
+                "Database migrations applied. Startup seed data is disabled (EnableStartupSeeding={EnableStartupSeeding}, IsDevelopment={IsDevelopment}, DatabaseLooksEmpty={DatabaseLooksEmpty}).",
+                configuredShouldSeed,
+                app.Environment.IsDevelopment(),
+                databaseLooksEmpty);
         }
     }
     else

@@ -145,4 +145,10 @@ curl -X PUT "https://your-api.example.com/api/users/1/email" \
 
 ## 7) Production note
 
-Automatic startup seed data has been removed from `Program.cs`, so a production deploy will only run EF Core migrations and will not recreate demo users or records.
+Startup seeding behavior is:
+
+- `EnableStartupSeeding=true`: always attempt startup seed.
+- `EnableStartupSeeding=false`: never run startup seed.
+- `EnableStartupSeeding` unset: seed automatically in Development, or when the database is empty (no users, trailers, or fuel reports).
+
+This means an empty production database can auto-populate once, but you can disable that by setting `EnableStartupSeeding=false`.
