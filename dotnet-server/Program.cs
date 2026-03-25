@@ -143,7 +143,19 @@ using (var scope = app.Services.CreateScope())
     if (db.Database.CanConnect())
     {
         db.Database.Migrate();
-        app.Logger.LogInformation("Database migrations applied. Startup seed data is disabled for production safety.");
+
+        var shouldSeed = builder.Configuration.GetValue<bool?>("EnableStartupSeeding")
+            ?? app.Environment.IsDevelopment();
+
+        if (shouldSeed)
+        {
+            await DevDataSeeder.SeedAsync(scope.ServiceProvider, app.Logger, app.Environment.IsDevelopment());
+            app.Logger.LogInformation("Database migrations applied and startup demo data seeded.");
+        }
+        else
+        {
+            app.Logger.LogInformation("Database migrations applied. Startup seed data is disabled.");
+        }
     }
     else
     {
