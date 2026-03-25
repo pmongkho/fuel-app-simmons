@@ -143,29 +143,7 @@ using (var scope = app.Services.CreateScope())
     if (db.Database.CanConnect())
     {
         db.Database.Migrate();
-
-        var configuredShouldSeed = builder.Configuration.GetValue<bool?>("EnableStartupSeeding");
-
-        var databaseLooksEmpty = !await db.Users.AsNoTracking().AnyAsync()
-            && !await db.Trailers.AsNoTracking().AnyAsync()
-            && !await db.FuelReports.AsNoTracking().AnyAsync();
-
-        var shouldSeed = configuredShouldSeed
-            ?? (app.Environment.IsDevelopment() || databaseLooksEmpty);
-
-        if (shouldSeed)
-        {
-            await DevDataSeeder.SeedAsync(scope.ServiceProvider, app.Logger, app.Environment.IsDevelopment());
-            app.Logger.LogInformation("Database migrations applied and startup demo data seeded.");
-        }
-        else
-        {
-            app.Logger.LogInformation(
-                "Database migrations applied. Startup seed data is disabled (EnableStartupSeeding={EnableStartupSeeding}, IsDevelopment={IsDevelopment}, DatabaseLooksEmpty={DatabaseLooksEmpty}).",
-                configuredShouldSeed,
-                app.Environment.IsDevelopment(),
-                databaseLooksEmpty);
-        }
+        app.Logger.LogInformation("Database migrations applied.");
     }
     else
     {
