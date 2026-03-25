@@ -8,10 +8,41 @@ namespace dotnet_server._Data;
 
 public static class DevDataSeeder
 {
+    private const string SeedMarkerType = "TEST_SEED_MARKER";
+    private const string SeedTag = "[TEST-SEED]";
+
+    private static readonly string[] LegacySeedEmails =
+    [
+        "employee@fuelapp.local",
+        "employee2@fuelapp.local",
+        "employee3@fuelapp.local",
+        "supervisor@fuelapp.local",
+        "supervisor2@fuelapp.local",
+        "admin@fuelapp.local"
+    ];
+
     public static async Task SeedAsync(IServiceProvider services, ILogger logger, bool isDevelopment)
     {
         var db = services.GetRequiredService<AppDbContext>();
         var userManager = services.GetRequiredService<UserManager<User>>();
+
+        var existingMarker = await db.NotificationRecipients
+            .AsNoTracking()
+            .AnyAsync(x => x.RecipientType == SeedMarkerType);
+
+        var legacySeedExists = await db.Users
+            .AsNoTracking()
+            .AnyAsync(x => x.Email != null && LegacySeedEmails.Contains(x.Email));
+
+        var testSeedExists = await db.Users
+            .AsNoTracking()
+            .AnyAsync(x => x.Email != null && x.Email.EndsWith("@seed.local"));
+
+        if (existingMarker || legacySeedExists || testSeedExists)
+        {
+            logger.LogInformation("Startup seed skipped because existing seed/test data was detected.");
+            return;
+        }
 
         async Task<User?> SeedUserAsync(string fullName, string email, UserRole role)
         {
@@ -23,7 +54,7 @@ public static class DevDataSeeder
 
             var newUser = new User
             {
-                FullName = fullName,
+                FullName = $"{SeedTag} {fullName}",
                 UserName = email,
                 Email = email,
                 Role = role,
@@ -41,20 +72,20 @@ public static class DevDataSeeder
             return newUser;
         }
 
-        var employeeOne = await SeedUserAsync("Employee One", "employee@fuelapp.local", UserRole.Employee);
-        var employeeTwo = await SeedUserAsync("Employee Two", "employee2@fuelapp.local", UserRole.Employee);
-        var employeeThree = await SeedUserAsync("Employee Three", "employee3@fuelapp.local", UserRole.Employee);
-        var supervisorOne = await SeedUserAsync("Supervisor One", "supervisor@fuelapp.local", UserRole.Supervisor);
-        var supervisorTwo = await SeedUserAsync("Supervisor Two", "supervisor2@fuelapp.local", UserRole.Supervisor);
-        await SeedUserAsync("Admin One", "admin@fuelapp.local", UserRole.Admin);
+        var employeeOne = await SeedUserAsync("Employee One", "test.employee1@seed.local", UserRole.Employee);
+        var employeeTwo = await SeedUserAsync("Employee Two", "test.employee2@seed.local", UserRole.Employee);
+        var employeeThree = await SeedUserAsync("Employee Three", "test.employee3@seed.local", UserRole.Employee);
+        var supervisorOne = await SeedUserAsync("Supervisor One", "test.supervisor1@seed.local", UserRole.Supervisor);
+        var supervisorTwo = await SeedUserAsync("Supervisor Two", "test.supervisor2@seed.local", UserRole.Supervisor);
+        await SeedUserAsync("Admin One", "test.admin1@seed.local", UserRole.Admin);
 
         if (!db.Trailers.Any())
         {
             db.Trailers.AddRange(
-                new Trailer { TrailerNumber = "8734567", Location = "Main", IsTankFull = false, UpdatedAtUtc = DateTime.UtcNow.AddDays(-4), Notes = "Assigned to produce route." },
-                new Trailer { TrailerNumber = "8734568", Location = "Flex", IsTankFull = true, UpdatedAtUtc = DateTime.UtcNow.AddDays(-3), Notes = "DEF refill completed." },
-                new Trailer { TrailerNumber = "8734569", Location = "Main", IsTankFull = false, HasMechanicalIssues = true, UpdatedAtUtc = DateTime.UtcNow.AddDays(-2), Notes = "Check valve this week." },
-                new Trailer { TrailerNumber = "8734570", Location = "Flex", IsTankFull = true, UpdatedAtUtc = DateTime.UtcNow.AddDays(-1), Notes = "Ready for overnight shift." }
+                new Trailer { TrailerNumber = "TEST-8734567", Location = "Main", IsTankFull = false, UpdatedAtUtc = DateTime.UtcNow.AddDays(-4), Notes = $"{SeedTag} Assigned to produce route." },
+                new Trailer { TrailerNumber = "TEST-8734568", Location = "Flex", IsTankFull = true, UpdatedAtUtc = DateTime.UtcNow.AddDays(-3), Notes = $"{SeedTag} DEF refill completed." },
+                new Trailer { TrailerNumber = "TEST-8734569", Location = "Main", IsTankFull = false, HasMechanicalIssues = true, UpdatedAtUtc = DateTime.UtcNow.AddDays(-2), Notes = $"{SeedTag} Check valve this week." },
+                new Trailer { TrailerNumber = "TEST-8734570", Location = "Flex", IsTankFull = true, UpdatedAtUtc = DateTime.UtcNow.AddDays(-1), Notes = $"{SeedTag} Ready for overnight shift." }
             );
             await db.SaveChangesAsync();
         }
@@ -77,10 +108,10 @@ public static class DevDataSeeder
                     FuelingTankLevelEnd = 355,
                     StartGaugeSignedBySupervisorId = supervisorOne.Id,
                     StartGaugeSignedAtUtc = now.AddDays(-2).AddMinutes(10),
-                    StartGaugeSupervisorSignatureName = supervisorOne.FullName,
+                    StartGaugeSupervisorSignatureName = $"{SeedTag} {supervisorOne.FullName}",
                     EndGaugeSignedBySupervisorId = supervisorTwo.Id,
                     EndGaugeSignedAtUtc = now.AddDays(-2).AddHours(4).AddMinutes(5),
-                    EndGaugeSupervisorSignatureName = supervisorTwo.FullName,
+                    EndGaugeSupervisorSignatureName = $"{SeedTag} {supervisorTwo.FullName}",
                     Entries =
                     [
                         new FuelEntry
@@ -93,22 +124,22 @@ public static class DevDataSeeder
                             VerificationStatus = VerificationStatus.Approved,
                             VerifiedBySupervisorId = supervisorOne.Id,
                             VerifiedAtUtc = now.AddDays(-2).AddHours(2),
-                            SupervisorSignatureName = supervisorOne.FullName,
+                            SupervisorSignatureName = $"{SeedTag} {supervisorOne.FullName}",
                             Photos =
                             [
                                 new FuelEntryPhoto
                                 {
                                     PhotoType = FuelPhotoType.StartGauge,
-                                    FileName = "start-gauge-report-1.jpg",
-                                    FilePath = "uploads/demo/start-gauge-report-1.jpg",
+                                    FileName = "TEST-start-gauge-report-1.jpg",
+                                    FilePath = "uploads/test-seed/start-gauge-report-1.jpg",
                                     ContentType = "image/jpeg",
                                     UploadedAtUtc = now.AddDays(-2).AddHours(1)
                                 },
                                 new FuelEntryPhoto
                                 {
                                     PhotoType = FuelPhotoType.EndGauge,
-                                    FileName = "end-gauge-report-1.jpg",
-                                    FilePath = "uploads/demo/end-gauge-report-1.jpg",
+                                    FileName = "TEST-end-gauge-report-1.jpg",
+                                    FilePath = "uploads/test-seed/end-gauge-report-1.jpg",
                                     ContentType = "image/jpeg",
                                     UploadedAtUtc = now.AddDays(-2).AddHours(2)
                                 }
@@ -124,7 +155,7 @@ public static class DevDataSeeder
                             VerificationStatus = VerificationStatus.Approved,
                             VerifiedBySupervisorId = supervisorOne.Id,
                             VerifiedAtUtc = now.AddDays(-2).AddHours(3),
-                            SupervisorSignatureName = supervisorOne.FullName
+                            SupervisorSignatureName = $"{SeedTag} {supervisorOne.FullName}"
                         }
                     ]
                 };
@@ -140,7 +171,7 @@ public static class DevDataSeeder
                     FuelingTankLevelEnd = 430,
                     StartGaugeSignedBySupervisorId = supervisorOne.Id,
                     StartGaugeSignedAtUtc = now.AddDays(-1).AddMinutes(15),
-                    StartGaugeSupervisorSignatureName = supervisorOne.FullName,
+                    StartGaugeSupervisorSignatureName = $"{SeedTag} {supervisorOne.FullName}",
                     Entries =
                     [
                         new FuelEntry
@@ -153,7 +184,7 @@ public static class DevDataSeeder
                             VerificationStatus = VerificationStatus.Rejected,
                             VerifiedBySupervisorId = supervisorOne.Id,
                             VerifiedAtUtc = now.AddDays(-1).AddHours(2),
-                            RejectionReason = "Photo of meter unreadable."
+                            RejectionReason = $"{SeedTag} Photo of meter unreadable."
                         },
                         new FuelEntry
                         {
@@ -201,10 +232,11 @@ public static class DevDataSeeder
         if (!db.NotificationRecipients.Any())
         {
             db.NotificationRecipients.AddRange(
-                new NotificationRecipient { FullName = "Admin One", Email = "admin@fuelapp.local", RecipientType = "Admin" },
-                new NotificationRecipient { FullName = "Supervisor One", Email = "supervisor@fuelapp.local", RecipientType = "Supervisor" },
-                new NotificationRecipient { FullName = "Dispatch Team", Email = "dispatch@simfoods.com", RecipientType = "Operations" },
-                new NotificationRecipient { FullName = "Safety Inbox", Email = "safety@simfoods.com", RecipientType = "Safety" }
+                new NotificationRecipient { FullName = $"{SeedTag} Admin One", Email = "test.admin1@seed.local", RecipientType = "Admin" },
+                new NotificationRecipient { FullName = $"{SeedTag} Supervisor One", Email = "test.supervisor1@seed.local", RecipientType = "Supervisor" },
+                new NotificationRecipient { FullName = $"{SeedTag} Dispatch Team", Email = "test.dispatch@seed.local", RecipientType = "Operations" },
+                new NotificationRecipient { FullName = $"{SeedTag} Safety Inbox", Email = "test.safety@seed.local", RecipientType = "Safety" },
+                new NotificationRecipient { FullName = SeedTag, Email = "test.seed-marker@seed.local", RecipientType = SeedMarkerType }
             );
             await db.SaveChangesAsync();
         }
@@ -219,28 +251,28 @@ public static class DevDataSeeder
                 {
                     FuelReportId = latestReport?.Id,
                     FuelEntryId = latestEntry?.Id,
-                    RecipientEmail = "admin@fuelapp.local",
-                    Subject = "Fuel report submitted",
+                    RecipientEmail = "test.admin1@seed.local",
+                    Subject = "[TEST] Fuel report submitted",
                     Status = "Delivered",
-                    ProviderMessageId = "msg_10001",
+                    ProviderMessageId = "test_msg_10001",
                     SentAtUtc = DateTime.UtcNow.AddHours(-6)
                 },
                 new EmailLog
                 {
                     FuelReportId = latestReport?.Id,
-                    RecipientEmail = "fleet@simfoods.com",
-                    Subject = "Fuel entry requires review",
+                    RecipientEmail = "test.fleet@seed.local",
+                    Subject = "[TEST] Fuel entry requires review",
                     Status = "Delivered",
-                    ProviderMessageId = "msg_10002",
+                    ProviderMessageId = "test_msg_10002",
                     SentAtUtc = DateTime.UtcNow.AddHours(-5)
                 },
                 new EmailLog
                 {
                     FuelReportId = latestReport?.Id,
-                    RecipientEmail = "ops@simfoods.com",
-                    Subject = "Fuel report rejection notice",
+                    RecipientEmail = "test.ops@seed.local",
+                    Subject = "[TEST] Fuel report rejection notice",
                     Status = "Failed",
-                    ErrorMessage = "Mailbox unavailable",
+                    ErrorMessage = "[TEST] Mailbox unavailable",
                     SentAtUtc = DateTime.UtcNow.AddHours(-4)
                 }
             );
@@ -251,5 +283,7 @@ public static class DevDataSeeder
         {
             logger.LogInformation("Demo data seeding ran outside development because EnableStartupSeeding was explicitly set.");
         }
+
+        logger.LogInformation("Startup test seed completed. Seeded records are tagged with {SeedTag} and @seed.local for easy cleanup.", SeedTag);
     }
 }
