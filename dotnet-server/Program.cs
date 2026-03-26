@@ -14,6 +14,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.Configure<ResendOptions>(builder.Configuration.GetSection(ResendOptions.SectionName));
 builder.Services.AddHttpClient<EmailService>();
+builder.Services.Configure<BlobStorageOptions>(builder.Configuration.GetSection(BlobStorageOptions.SectionName));
+builder.Services.Configure<GaugeOcrOptions>(builder.Configuration.GetSection(GaugeOcrOptions.SectionName));
+builder.Services.AddScoped<FuelPhotoStorageService>();
+builder.Services.AddHttpClient<GaugeOcrService>();
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme

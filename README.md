@@ -72,3 +72,15 @@ Angular production API URL is hardcoded in `angular-client/src/environments/envi
 
 For production database cleanup / admin SQL commands, see:
 - `dotnet-server/docs/production-sql.md`
+
+
+## Azure Blob + OCR env vars
+
+Set these on the API service (recommended via environment variables, not committed secrets):
+- `BlobStorage__AccountName` = `fuelappsimmons`
+- `BlobStorage__AccessKey` = your Azure storage access key
+- `BlobStorage__ContainerName` = `fuel-photos`
+- `GaugeOcr__Endpoint` = Azure OCR endpoint
+- `GaugeOcr__ApiKey` = Azure OCR API key
+
+If you prefer, you can still set `BlobStorage__ConnectionString` directly instead of account name/access key.
