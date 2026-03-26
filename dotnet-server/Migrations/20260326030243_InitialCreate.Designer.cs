@@ -12,7 +12,7 @@ using dotnet_server._Data;
 namespace dotnet_server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260314133117_InitialCreate")]
+    [Migration("20260326030243_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -20,7 +20,7 @@ namespace dotnet_server.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.25")
+                .HasAnnotation("ProductVersion", "8.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -217,12 +217,6 @@ namespace dotnet_server.Migrations
                     b.Property<int>("FuelType")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("FuelingTankLevelEnd")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("FuelingTankLevelStart")
-                        .HasColumnType("integer");
-
                     b.Property<decimal>("GallonsPumped")
                         .HasColumnType("numeric");
 
@@ -307,11 +301,35 @@ namespace dotnet_server.Migrations
                     b.Property<int>("CreatedByUserId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("EndGaugeSignedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("EndGaugeSignedBySupervisorId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EndGaugeSupervisorSignatureName")
+                        .HasColumnType("text");
+
+                    b.Property<int>("FuelingTankLevelEnd")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("FuelingTankLevelStart")
+                        .HasColumnType("integer");
+
                     b.Property<decimal>("OverallTotalGallons")
                         .HasColumnType("numeric");
 
                     b.Property<DateOnly>("ReportDate")
                         .HasColumnType("date");
+
+                    b.Property<DateTime?>("StartGaugeSignedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("StartGaugeSignedBySupervisorId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StartGaugeSupervisorSignatureName")
+                        .HasColumnType("text");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -331,6 +349,10 @@ namespace dotnet_server.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("EndGaugeSignedBySupervisorId");
+
+                    b.HasIndex("StartGaugeSignedBySupervisorId");
 
                     b.ToTable("FuelReports");
                 });
@@ -590,7 +612,21 @@ namespace dotnet_server.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("dotnet_server.Domain.Entities.User", "EndGaugeSignedBySupervisor")
+                        .WithMany()
+                        .HasForeignKey("EndGaugeSignedBySupervisorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("dotnet_server.Domain.Entities.User", "StartGaugeSignedBySupervisor")
+                        .WithMany()
+                        .HasForeignKey("StartGaugeSignedBySupervisorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("CreatedByUser");
+
+                    b.Navigation("EndGaugeSignedBySupervisor");
+
+                    b.Navigation("StartGaugeSignedBySupervisor");
                 });
 
             modelBuilder.Entity("dotnet_server.Domain.Entities.FuelEntry", b =>

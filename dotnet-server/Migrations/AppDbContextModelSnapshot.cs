@@ -17,7 +17,7 @@ namespace dotnet_server.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.25")
+                .HasAnnotation("ProductVersion", "8.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -319,12 +319,6 @@ namespace dotnet_server.Migrations
                     b.Property<DateOnly>("ReportDate")
                         .HasColumnType("date");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("SubmittedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<DateTime?>("StartGaugeSignedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -333,6 +327,12 @@ namespace dotnet_server.Migrations
 
                     b.Property<string>("StartGaugeSupervisorSignatureName")
                         .HasColumnType("text");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SubmittedAtUtc")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<decimal>("TotalClearDiesel")
                         .HasColumnType("numeric");

@@ -228,10 +228,18 @@ namespace dotnet_server.Migrations
                     ReportDate = table.Column<DateOnly>(type: "date", nullable: false),
                     CreatedByUserId = table.Column<int>(type: "integer", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
+                    FuelingTankLevelStart = table.Column<int>(type: "integer", nullable: false),
+                    FuelingTankLevelEnd = table.Column<int>(type: "integer", nullable: false),
                     TotalRedDiesel = table.Column<decimal>(type: "numeric", nullable: false),
                     TotalClearDiesel = table.Column<decimal>(type: "numeric", nullable: false),
                     TotalDef = table.Column<decimal>(type: "numeric", nullable: false),
                     OverallTotalGallons = table.Column<decimal>(type: "numeric", nullable: false),
+                    StartGaugeSignedBySupervisorId = table.Column<int>(type: "integer", nullable: true),
+                    StartGaugeSignedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    StartGaugeSupervisorSignatureName = table.Column<string>(type: "text", nullable: true),
+                    EndGaugeSignedBySupervisorId = table.Column<int>(type: "integer", nullable: true),
+                    EndGaugeSignedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    EndGaugeSupervisorSignatureName = table.Column<string>(type: "text", nullable: true),
                     CreatedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     SubmittedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
@@ -241,6 +249,18 @@ namespace dotnet_server.Migrations
                     table.ForeignKey(
                         name: "FK_FuelReports_AspNetUsers_CreatedByUserId",
                         column: x => x.CreatedByUserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_FuelReports_AspNetUsers_EndGaugeSignedBySupervisorId",
+                        column: x => x.EndGaugeSignedBySupervisorId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_FuelReports_AspNetUsers_StartGaugeSignedBySupervisorId",
+                        column: x => x.StartGaugeSignedBySupervisorId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -255,8 +275,6 @@ namespace dotnet_server.Migrations
                     FuelReportId = table.Column<int>(type: "integer", nullable: false),
                     TrailerId = table.Column<int>(type: "integer", nullable: true),
                     FuelType = table.Column<int>(type: "integer", nullable: false),
-                    FuelingTankLevelStart = table.Column<int>(type: "integer", nullable: true),
-                    FuelingTankLevelEnd = table.Column<int>(type: "integer", nullable: true),
                     GallonsPumped = table.Column<decimal>(type: "numeric", nullable: false),
                     EnteredByUserId = table.Column<int>(type: "integer", nullable: false),
                     EnteredAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -391,6 +409,16 @@ namespace dotnet_server.Migrations
                 name: "IX_FuelReports_CreatedByUserId",
                 table: "FuelReports",
                 column: "CreatedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FuelReports_EndGaugeSignedBySupervisorId",
+                table: "FuelReports",
+                column: "EndGaugeSignedBySupervisorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FuelReports_StartGaugeSignedBySupervisorId",
+                table: "FuelReports",
+                column: "StartGaugeSignedBySupervisorId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Trailers_TrailerNumber",

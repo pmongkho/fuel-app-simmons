@@ -123,3 +123,9 @@
 /Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/bin/Debug/net8.0/Microsoft.AspNetCore.Identity.EntityFrameworkCore.dll
 /Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/bin/Debug/net8.0/Microsoft.Extensions.Identity.Core.dll
 /Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/bin/Debug/net8.0/Microsoft.Extensions.Identity.Stores.dll
+/Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/bin/Debug/net8.0/Azure.Core.dll
+/Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/bin/Debug/net8.0/Azure.Storage.Blobs.dll
+/Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/bin/Debug/net8.0/Azure.Storage.Common.dll
+/Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/bin/Debug/net8.0/System.ClientModel.dll
+/Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/bin/Debug/net8.0/System.IO.Hashing.dll
+/Users/a_mac/Desktop/CS PROJECTS/DOTNET/fuel-app/dotnet-server/bin/Debug/net8.0/System.Memory.Data.dll
