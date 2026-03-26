@@ -1,3 +1,4 @@
+using System.Data;
 using System.Text;
 using dotnet_server._Data;
 using dotnet_server.Application.Services;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -146,6 +148,23 @@ using (var scope = app.Services.CreateScope())
 
     if (db.Database.CanConnect())
     {
+        using var connection = (NpgsqlConnection)db.Database.GetDbConnection();
+        if (connection.State != ConnectionState.Open)
+        {
+            connection.Open();
+        }
+
+        var hasMigrationsHistoryTable = TableExists(connection, "__EFMigrationsHistory");
+        var hasAppliedMigrations = hasMigrationsHistoryTable && HasRows(connection, "__EFMigrationsHistory");
+        var hasLegacySchemaObjects = TableExists(connection, "AspNetRoles");
+
+        if (!hasAppliedMigrations && hasLegacySchemaObjects)
+        {
+            throw new InvalidOperationException(
+                "Database schema and EF migration history are out of sync: table 'AspNetRoles' exists, but '__EFMigrationsHistory' has no rows. " +
+                "Baseline the existing schema by inserting the initial migration record (20260314133117_InitialCreate) or reset the database.");
+        }
+
         db.Database.Migrate();
         app.Logger.LogInformation("Database migrations applied.");
     }
@@ -153,6 +172,28 @@ using (var scope = app.Services.CreateScope())
     {
         app.Logger.LogWarning("Database is unreachable at startup. Skipping database migrations.");
     }
+}
+
+static bool TableExists(NpgsqlConnection connection, string tableName)
+{
+    using var command = connection.CreateCommand();
+    command.CommandText = """
+                          SELECT EXISTS (
+                              SELECT 1
+                              FROM pg_catalog.pg_class c
+                              JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+                              WHERE n.nspname = 'public' AND c.relname = @tableName
+                          );
+                          """;
+    command.Parameters.AddWithValue("tableName", tableName);
+    return command.ExecuteScalar() is true;
+}
+
+static bool HasRows(NpgsqlConnection connection, string tableName)
+{
+    using var command = connection.CreateCommand();
+    command.CommandText = $"""SELECT EXISTS (SELECT 1 FROM "{tableName}" LIMIT 1);""";
+    return command.ExecuteScalar() is true;
 }
 
 app.UseStaticFiles();
