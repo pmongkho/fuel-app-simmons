@@ -128,7 +128,7 @@ public class ReportsController(AppDbContext dbContext, EmailService emailService
 
     [HttpPost("extract-gauge-reading")]
     [Authorize(Roles = $"{nameof(UserRole.Employee)},{nameof(UserRole.Supervisor)},{nameof(UserRole.Admin)}")]
-    public async Task<IActionResult> ExtractGaugeReading(IFormFile? file)
+    public async Task<IActionResult> ExtractGaugeReading([FromForm] IFormFile? file)
     {
         if (file is null || file.Length == 0) return BadRequest("File is required.");
 

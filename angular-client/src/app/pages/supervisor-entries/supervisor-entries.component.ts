@@ -1,35 +1,32 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { DatePipe, NgClass, NgIf } from '@angular/common';
+import { DatePipe, NgIf } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/auth.service';
 import { environment } from '../../../environments/environment';
 
-type SupervisorEntry = {
+type SupervisorReport = {
   id: number;
-  reportId: number;
   reportDate: string;
-  reportCreatedByUserId: number;
-  reportStatus: string;
-  reportTotalRedDiesel: number;
-  reportTotalClearDiesel: number;
-  reportTotalDef: number;
-  reportOverallTotalGallons: number;
-  reportCreatedAtUtc: string;
-  reportSubmittedAtUtc: string | null;
-  reportEntriesCount: number;
-  employee: string;
-  trailerNumber: string;
-  fuelType: string;
-  gallonsPumped: number;
-  submittedTime: string;
+  createdBy: string;
   status: string;
+  totalRedDiesel: number;
+  totalClearDiesel: number;
+  totalDef: number;
+  overallTotalGallons: number;
+  fuelingTankLevelStart: number;
+  fuelingTankLevelEnd: number;
+  startGaugeSignedBySupervisorId: number | null;
+  endGaugeSignedBySupervisorId: number | null;
+  createdAtUtc: string;
+  submittedAtUtc: string | null;
+  entriesCount: number;
 };
 
 @Component({
   selector: 'app-supervisor-entries',
   standalone: true,
-  imports: [RouterLink, NgClass, DatePipe, NgIf],
+  imports: [RouterLink, DatePipe, NgIf],
   templateUrl: './supervisor-entries.component.html',
   styleUrl: './supervisor-entries.component.css',
 })
@@ -37,36 +34,30 @@ export class SupervisorEntriesComponent implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
 
-  entries: SupervisorEntry[] = [];
+  reports: SupervisorReport[] = [];
   isLoading = true;
   errorMessage: string | null = null;
 
   ngOnInit(): void {
-    this.http.get<SupervisorEntry[]>(`${environment.apiBaseUrl}/supervisor/entries/pending`, { headers: this.auth.authHeaders() }).subscribe({
-      next: (entries) => {
-        this.entries = entries;
+    this.http.get<SupervisorReport[]>(`${environment.apiBaseUrl}/supervisor/reports/pending`, { headers: this.auth.authHeaders() }).subscribe({
+      next: (reports) => {
+        this.reports = reports;
         this.isLoading = false;
       },
       error: () => {
-        this.errorMessage = 'Unable to load supervisor entries.';
+        this.errorMessage = 'Unable to load supervisor reports.';
         this.isLoading = false;
       },
     });
   }
 
   get pendingCount(): number {
-    return this.entries.length;
+    return this.reports.length;
   }
 
-  badgeClass(status: string): string {
-    if (status === 'Approved') {
-      return 'bg-emerald-100 text-emerald-700';
-    }
-
-    if (status === 'Rejected') {
-      return 'bg-rose-100 text-rose-700';
-    }
-
-    return 'bg-amber-100 text-amber-700';
+  signOffStatus(report: SupervisorReport): string {
+    if (report.endGaugeSignedBySupervisorId) return 'Complete';
+    if (report.startGaugeSignedBySupervisorId) return 'Start signed';
+    return 'Needs sign-off';
   }
 }
