@@ -10,7 +10,7 @@ type VerificationDecision = 'approved' | 'rejected' | null;
 
 interface FuelEntryDetail {
   id: number;
-  fuelType: string;
+  fuelType: string | null;
   gallonsPumped: number;
   fuelingTankLevelStart: number | null;
   fuelingTankLevelEnd: number | null;
@@ -32,7 +32,7 @@ interface FuelReportSummary {
 
 interface SupervisorEntryDetail {
   id: number;
-  fuelType: string;
+  fuelType: string | null;
   gallonsPumped: number;
   fuelingTankLevelStart: number | null;
   fuelingTankLevelEnd: number | null;
@@ -77,6 +77,29 @@ export class SupervisorEntryDetailComponent implements OnInit {
 
   ngOnInit(): void {
     this.route.paramMap.subscribe((params) => this.loadEntry(params));
+  }
+
+
+  get fuelTypeBreakdown(): Array<{ fuelType: string; gallons: number }> {
+    if (!this.entry) {
+      return [];
+    }
+
+    const totals = new Map<string, number>();
+
+    for (const reportEntry of this.entry.reportEntries) {
+      const normalizedFuelType = reportEntry.fuelType?.trim() || 'Unspecified';
+      totals.set(normalizedFuelType, (totals.get(normalizedFuelType) ?? 0) + reportEntry.gallonsPumped);
+    }
+
+    if (totals.size === 0) {
+      const fallbackFuelType = this.entry.fuelType?.trim() || 'Unspecified';
+      totals.set(fallbackFuelType, this.entry.gallonsPumped);
+    }
+
+    return Array.from(totals.entries())
+      .map(([fuelType, gallons]) => ({ fuelType, gallons }))
+      .sort((a, b) => a.fuelType.localeCompare(b.fuelType));
   }
 
   get canApprove(): boolean {
