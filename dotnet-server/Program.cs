@@ -160,9 +160,10 @@ using (var scope = app.Services.CreateScope())
 
         if (!hasAppliedMigrations && hasLegacySchemaObjects)
         {
-            throw new InvalidOperationException(
-                "Database schema and EF migration history are out of sync: table 'AspNetRoles' exists, but '__EFMigrationsHistory' has no rows. " +
-                "Baseline the existing schema by inserting the initial migration record (20260314133117_InitialCreate) or reset the database.");
+            BaselineInitialMigration(connection);
+            app.Logger.LogWarning(
+                "Database schema existed without EF migration history. Inserted baseline migration record {MigrationId}.",
+                InitialMigrationId);
         }
 
         db.Database.Migrate();
@@ -194,6 +195,22 @@ static bool HasRows(NpgsqlConnection connection, string tableName)
     using var command = connection.CreateCommand();
     command.CommandText = $"""SELECT EXISTS (SELECT 1 FROM "{tableName}" LIMIT 1);""";
     return command.ExecuteScalar() is true;
+}
+
+const string InitialMigrationId = "20260314133117_InitialCreate";
+const string EfProductVersion = "8.0.11";
+
+static void BaselineInitialMigration(NpgsqlConnection connection)
+{
+    using var command = connection.CreateCommand();
+    command.CommandText = """
+                          INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+                          VALUES (@migrationId, @productVersion)
+                          ON CONFLICT ("MigrationId") DO NOTHING;
+                          """;
+    command.Parameters.AddWithValue("migrationId", InitialMigrationId);
+    command.Parameters.AddWithValue("productVersion", EfProductVersion);
+    command.ExecuteNonQuery();
 }
 
 app.UseStaticFiles();
