@@ -5,29 +5,22 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/auth.service';
 import { environment } from '../../../environments/environment';
 
-type PendingSupervisorEntry = {
+type PendingSupervisorReport = {
   id: number;
-  reportId: number;
   reportDate: string;
-  reportFuelingTankLevelStart: number | null;
-  reportFuelingTankLevelEnd: number | null;
-  reportCreatedByUserId: number;
-  reportStatus: string;
-  reportTotalRedDiesel: number;
-  reportTotalClearDiesel: number;
-  reportTotalDef: number;
-  reportOverallTotalGallons: number;
-  reportCreatedAtUtc: string;
-  reportSubmittedAtUtc: string | null;
-  reportStartGaugeSignedBySupervisorId: number | null;
-  reportEndGaugeSignedBySupervisorId: number | null;
-  reportEntriesCount: number;
-  employee: string;
-  trailerNumber: string;
-  fuelType: string;
-  gallonsPumped: number;
-  submittedTime: string;
+  createdBy: string;
   status: string;
+  totalRedDiesel: number;
+  totalClearDiesel: number;
+  totalDef: number;
+  overallTotalGallons: number;
+  fuelingTankLevelStart: number | null;
+  fuelingTankLevelEnd: number | null;
+  startGaugeSignedBySupervisorId: number | null;
+  endGaugeSignedBySupervisorId: number | null;
+  createdAtUtc: string;
+  submittedAtUtc: string | null;
+  entriesCount: number;
 };
 
 @Component({
@@ -41,30 +34,30 @@ export class SupervisorEntriesComponent implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
 
-  entries: PendingSupervisorEntry[] = [];
+  reports: PendingSupervisorReport[] = [];
   isLoading = true;
   errorMessage: string | null = null;
 
   ngOnInit(): void {
-    this.http.get<PendingSupervisorEntry[]>(`${environment.apiBaseUrl}/supervisor/entries/pending`, { headers: this.auth.authHeaders() }).subscribe({
-      next: (entries) => {
-        this.entries = entries;
+    this.http.get<PendingSupervisorReport[]>(`${environment.apiBaseUrl}/supervisor/reports/pending`, { headers: this.auth.authHeaders() }).subscribe({
+      next: (reports) => {
+        this.reports = reports;
         this.isLoading = false;
       },
       error: () => {
-        this.errorMessage = 'Unable to load supervisor entries.';
+        this.errorMessage = 'Unable to load supervisor reports.';
         this.isLoading = false;
       },
     });
   }
 
   get pendingCount(): number {
-    return this.entries.length;
+    return this.reports.length;
   }
 
-  signOffStatus(entry: PendingSupervisorEntry): string {
-    if (entry.reportEndGaugeSignedBySupervisorId) return 'Complete';
-    if (entry.reportStartGaugeSignedBySupervisorId) return 'Start signed';
+  signOffStatus(report: PendingSupervisorReport): string {
+    if (report.endGaugeSignedBySupervisorId) return 'Complete';
+    if (report.startGaugeSignedBySupervisorId) return 'Start signed';
     return 'Needs sign-off';
   }
 }
