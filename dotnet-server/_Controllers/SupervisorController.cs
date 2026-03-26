@@ -14,6 +14,42 @@ namespace dotnet_server.Api.Controllers;
 [Authorize(Roles = $"{nameof(UserRole.Supervisor)},{nameof(UserRole.Admin)}")]
 public class SupervisorController(AppDbContext dbContext) : ControllerBase
 {
+    [HttpGet("reports/pending")]
+    public async Task<IActionResult> PendingReports([FromQuery] string? date)
+    {
+        var query = dbContext.FuelReports
+            .Include(x => x.CreatedByUser)
+            .Where(x => x.Status == FuelReportStatus.Submitted);
+
+        if (!string.IsNullOrWhiteSpace(date))
+        {
+            if (!DateOnly.TryParse(date, out var parsedDate)) return BadRequest("Invalid date format. Use yyyy-MM-dd.");
+            query = query.Where(x => x.ReportDate == parsedDate);
+        }
+
+        return Ok(await query
+            .OrderByDescending(x => x.SubmittedAtUtc ?? x.CreatedAtUtc)
+            .Select(x => new
+            {
+                x.Id,
+                reportDate = x.ReportDate,
+                createdBy = x.CreatedByUser != null ? x.CreatedByUser.FullName : string.Empty,
+                status = x.Status.ToString(),
+                x.TotalRedDiesel,
+                x.TotalClearDiesel,
+                x.TotalDef,
+                x.OverallTotalGallons,
+                x.FuelingTankLevelStart,
+                x.FuelingTankLevelEnd,
+                x.StartGaugeSignedBySupervisorId,
+                x.EndGaugeSignedBySupervisorId,
+                x.CreatedAtUtc,
+                x.SubmittedAtUtc,
+                entriesCount = x.Entries.Count()
+            })
+            .ToListAsync());
+    }
+
     [HttpGet("entries/pending")]
     public async Task<IActionResult> Pending([FromQuery] string? date)
     {

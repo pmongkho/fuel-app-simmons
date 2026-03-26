@@ -133,16 +133,25 @@ public class EntriesController(AppDbContext dbContext, FuelPhotoStorageService f
     }
 
     [HttpPost("entries/{entryId:int}/photos")]
-    public async Task<IActionResult> UploadPhoto(int entryId, [FromForm] string photoType, IFormFile file)
+    public async Task<IActionResult> UploadPhoto(int entryId, [FromForm] string photoType, [FromForm] IFormFile? file)
     {
         if (!Enum.TryParse<FuelPhotoType>(photoType, true, out var parsedType)) return BadRequest("Invalid photo type");
+        if (file is null || file.Length == 0) return BadRequest("File is required.");
         var entry = await dbContext.FuelEntries.FindAsync(entryId);
         if (entry is null) return NotFound();
         if (!CanModifyEntry(entry)) return Forbid();
 
-        var safeName = $"entry-{entryId}/{Guid.NewGuid():N}-{Path.GetFileName(file.FileName)}";
-        await using var stream = file.OpenReadStream();
-        var blobUrl = await fuelPhotoStorageService.UploadAsync(stream, file.ContentType, safeName, HttpContext.RequestAborted);
+        string blobUrl;
+        try
+        {
+            var safeName = $"entry-{entryId}/{Guid.NewGuid():N}-{Path.GetFileName(file.FileName)}";
+            await using var stream = file.OpenReadStream();
+            blobUrl = await fuelPhotoStorageService.UploadAsync(stream, file.ContentType, safeName, HttpContext.RequestAborted);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
 
         var photo = new FuelEntryPhoto
         {
