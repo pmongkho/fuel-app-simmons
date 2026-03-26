@@ -97,7 +97,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("frontend", policy =>
     {
         var configuredOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-            ?? ["http://localhost:4200", "https://fuel-app-simmons.vercel.app", "https://*.vercel.app"];
+            ?? ["http://localhost:4200", "https://fuel-app-simmons.vercel.app", "https://fuel-app-simmons.com", "https://www.fuel-app-simmons.com", "https://*.vercel.app"];
 
         var exactOrigins = configuredOrigins
             .Where(origin => !string.IsNullOrWhiteSpace(origin) && !origin.Contains('*'))

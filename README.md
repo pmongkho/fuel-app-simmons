@@ -44,6 +44,14 @@ If you use the Vercel dashboard, make sure:
 Backend service URL:
 - `https://fuel-app-simmons.onrender.com`
 
+
+Frontend URLs now expected in production:
+- `https://fuel-app-simmons.com`
+- `https://www.fuel-app-simmons.com`
+- `https://fuel-app-simmons.vercel.app` (keep as fallback/preview)
+
+The API CORS allowlist in `dotnet-server/appsettings.json` already includes these domains.
+
 Database URL:
 - `postgresql://fuel_app_simmons_user:xcrZ4WpBTKWHefScIDBAgmJhvbt2HpKy@dpg-d6rmub7gi27c73daq9p0-a/fuel_app_simmons`
 
@@ -67,6 +75,24 @@ In **non-development environments** (production/staging), the API now requires `
 
 Angular production API URL is hardcoded in `angular-client/src/environments/environment.production.ts` to:
 - `https://fuel-app-simmons.onrender.com/api`
+
+
+## Custom domain rollout checklist (Vercel + Render)
+
+1. **Vercel project (frontend):**
+   - Add both `fuel-app-simmons.com` and `www.fuel-app-simmons.com` in Project Settings → Domains.
+   - Set one as primary (usually apex/root) and configure redirect for the other.
+2. **DNS provider:**
+   - Apex/root (`fuel-app-simmons.com`) should point to Vercel using A/ALIAS/ANAME based on your DNS provider instructions.
+   - `www` should be a CNAME to Vercel (`cname.vercel-dns.com`).
+3. **Render backend env var:**
+   - Set `Cors__AllowedOrigins__0=http://localhost:4200`
+   - Set `Cors__AllowedOrigins__1=https://fuel-app-simmons.vercel.app`
+   - Set `Cors__AllowedOrigins__2=https://fuel-app-simmons.com`
+   - Set `Cors__AllowedOrigins__3=https://www.fuel-app-simmons.com`
+   - Set `Cors__AllowedOrigins__4=https://*.vercel.app`
+   - Redeploy API after env var changes.
+4. **No frontend API URL change required** unless your backend URL moves away from Render.
 
 ## Backend production cleanup
 
