@@ -1,6 +1,6 @@
 import { DatePipe, NgClass, NgFor, NgIf } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, OnInit, computed, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, ParamMap, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
@@ -23,6 +23,8 @@ interface FuelEntryDetail {
 interface FuelReportSummary {
   id: number;
   reportDate: string;
+  fuelingTankLevelStart: number | null;
+  fuelingTankLevelEnd: number | null;
   createdBy: string;
   status: string;
   entriesCount: number;
@@ -72,20 +74,6 @@ export class SupervisorEntryDetailComponent implements OnInit {
   actionMessage: string | null = null;
   isSubmitting = false;
 
-  readonly firstAndLastGauge = computed(() => {
-    if (!this.entry) {
-      return { start: null as number | null, end: null as number | null };
-    }
-
-    const sortedEntries = [...this.entry.reportEntries].sort((a, b) => new Date(a.enteredAtUtc).getTime() - new Date(b.enteredAtUtc).getTime());
-    const firstEntry = sortedEntries[0];
-    const lastEntry = sortedEntries[sortedEntries.length - 1];
-
-    return {
-      start: firstEntry?.fuelingTankLevelStart ?? this.entry.fuelingTankLevelStart,
-      end: lastEntry?.fuelingTankLevelEnd ?? this.entry.fuelingTankLevelEnd,
-    };
-  });
 
   ngOnInit(): void {
     this.route.paramMap.subscribe((params) => this.loadEntry(params));
@@ -107,9 +95,6 @@ export class SupervisorEntryDetailComponent implements OnInit {
     return this.rejectionReason.trim().length >= 8 && this.signatureName.trim().length >= 3 && this.signaturePin.trim().length >= 4 && !this.isSubmitting;
   }
 
-  get isMultiEntryReport(): boolean {
-    return (this.entry?.reportEntries.length ?? 0) > 1;
-  }
 
   approve(): void {
     if (!this.entry || !this.canApprove) {
