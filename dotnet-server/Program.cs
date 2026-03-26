@@ -134,6 +134,9 @@ builder.Services.AddCors(options =>
     });
 });
 
+const string InitialMigrationId = "20260314133117_InitialCreate";
+const string EfProductVersion = "8.0.11";
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -196,9 +199,6 @@ static bool HasRows(NpgsqlConnection connection, string tableName)
     command.CommandText = $"""SELECT EXISTS (SELECT 1 FROM "{tableName}" LIMIT 1);""";
     return command.ExecuteScalar() is true;
 }
-
-const string InitialMigrationId = "20260314133117_InitialCreate";
-const string EfProductVersion = "8.0.11";
 
 static void BaselineInitialMigration(NpgsqlConnection connection)
 {
