@@ -13,7 +13,7 @@ namespace dotnet_server.Api.Controllers;
 [ApiController]
 [Route("api/reports")]
 [Authorize]
-public class ReportsController(AppDbContext dbContext, EmailService emailService) : ControllerBase
+public class ReportsController(AppDbContext dbContext, EmailService emailService, GaugeOcrService gaugeOcrService) : ControllerBase
 {
     private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -124,6 +124,28 @@ public class ReportsController(AppDbContext dbContext, EmailService emailService
         report.FuelingTankLevelEnd = request.FuelingTankLevelEnd.Value;
         await dbContext.SaveChangesAsync();
         return Ok();
+    }
+
+    [HttpPost("extract-gauge-reading")]
+    [Authorize(Roles = $"{nameof(UserRole.Employee)},{nameof(UserRole.Supervisor)},{nameof(UserRole.Admin)}")]
+    public async Task<IActionResult> ExtractGaugeReading(IFormFile? file)
+    {
+        if (file is null || file.Length == 0) return BadRequest("File is required.");
+
+        try
+        {
+            await using var fileStream = file.OpenReadStream();
+            var (reading, rawText) = await gaugeOcrService.ExtractGaugeReadingAsync(fileStream, HttpContext.RequestAborted);
+            return Ok(new { reading, rawText });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (TimeoutException)
+        {
+            return StatusCode(StatusCodes.Status504GatewayTimeout, "OCR processing timed out.");
+        }
     }
 
     [HttpPost("{id:int}/submit")]

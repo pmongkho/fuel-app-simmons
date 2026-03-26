@@ -13,7 +13,7 @@ namespace dotnet_server.Api.Controllers;
 [ApiController]
 [Route("api")]
 [Authorize]
-public class EntriesController(AppDbContext dbContext) : ControllerBase
+public class EntriesController(AppDbContext dbContext, FuelPhotoStorageService fuelPhotoStorageService) : ControllerBase
 {
     private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -140,19 +140,16 @@ public class EntriesController(AppDbContext dbContext) : ControllerBase
         if (entry is null) return NotFound();
         if (!CanModifyEntry(entry)) return Forbid();
 
-        var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "uploads", "fuel");
-        Directory.CreateDirectory(uploadsDir);
-        var safeName = $"entry-{entryId}-{Guid.NewGuid():N}-{file.FileName}";
-        var fullPath = Path.Combine(uploadsDir, safeName);
-        await using var stream = System.IO.File.Create(fullPath);
-        await file.CopyToAsync(stream);
+        var safeName = $"entry-{entryId}/{Guid.NewGuid():N}-{Path.GetFileName(file.FileName)}";
+        await using var stream = file.OpenReadStream();
+        var blobUrl = await fuelPhotoStorageService.UploadAsync(stream, file.ContentType, safeName, HttpContext.RequestAborted);
 
         var photo = new FuelEntryPhoto
         {
             FuelEntryId = entryId,
             PhotoType = parsedType,
             FileName = file.FileName,
-            FilePath = $"/uploads/fuel/{safeName}",
+            FilePath = blobUrl,
             ContentType = file.ContentType,
             UploadedAtUtc = DateTime.UtcNow
         };
