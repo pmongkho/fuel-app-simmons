@@ -23,8 +23,12 @@
       <div class="mt-3 space-y-2 text-sm text-slate-700">
         <p><strong>Report date:</strong> {{ currentEntry.report.reportDate }}</p>
         <p><strong>Employee:</strong> {{ currentEntry.enteredBy }}</p>
-        <p><strong>Trailer #:</strong> {{ currentEntry.trailerNumber || '-' }}</p>
-        <p><strong>Fuel type:</strong> {{ currentEntry.fuelType }}</p>
+        <div>
+          <p><strong>Fuel types:</strong></p>
+          <ul class="ml-5 list-disc">
+            <li *ngFor="let fuel of fuelTypeBreakdown">{{ fuel.fuelType }}: {{ fuel.gallons }} gal</li>
+          </ul>
+        </div>
         <p><strong>Submitted:</strong> {{ currentEntry.enteredAtUtc | date: 'short' }}</p>
         <p><strong>Report tank start:</strong> {{ currentEntry.report.fuelingTankLevelStart ?? '-' }}</p>
         <p><strong>Report tank end:</strong> {{ currentEntry.report.fuelingTankLevelEnd ?? '-' }}</p>
@@ -49,7 +53,6 @@
         <thead class="border-y border-slate-200 bg-slate-50 text-slate-600">
           <tr>
             <th class="px-2 py-2 font-medium">Time</th>
-            <th class="px-2 py-2 font-medium">Trailer #</th>
             <th class="px-2 py-2 font-medium">Tank Start</th>
             <th class="px-2 py-2 font-medium">Tank End</th>
             <th class="px-2 py-2 font-medium">Gallons</th>
@@ -59,7 +62,6 @@
         <tbody>
           <tr class="border-b border-slate-100" *ngFor="let reportEntry of currentEntry.reportEntries">
             <td class="px-2 py-2">{{ reportEntry.enteredAtUtc | date: 'shortTime' }}</td>
-            <td class="px-2 py-2">{{ reportEntry.trailerNumber || '-' }}</td>
             <td class="px-2 py-2">{{ reportEntry.fuelingTankLevelStart ?? '-' }}</td>
             <td class="px-2 py-2">{{ reportEntry.fuelingTankLevelEnd ?? '-' }}</td>
             <td class="px-2 py-2">{{ reportEntry.gallonsPumped }}</td>
