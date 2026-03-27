@@ -62,7 +62,6 @@ export class SupervisorEntryDetailComponent implements OnInit {
   errorMessage: string | null = null;
 
   meterVerified = false;
-  photoVerified = false;
   fuelAmountVerified = false;
 
   signatureName = '';
@@ -105,7 +104,6 @@ export class SupervisorEntryDetailComponent implements OnInit {
   get canApprove(): boolean {
     return (
       this.meterVerified &&
-      this.photoVerified &&
       this.fuelAmountVerified &&
       this.signatureName.trim().length >= 3 &&
       this.signaturePin.trim().length >= 4 &&
