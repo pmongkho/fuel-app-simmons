@@ -99,8 +99,6 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
         var report = await dbContext.FuelReports
             .Include(x => x.CreatedByUser)
             .Include(x => x.Entries)
-            .ThenInclude(e => e.Photos)
-            .Include(x => x.Entries)
             .ThenInclude(e => e.EnteredByUser)
             .Include(x => x.Entries)
             .ThenInclude(e => e.Trailer)
@@ -140,8 +138,7 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
                     verificationStatus = x.VerificationStatus.ToString(),
                     x.EnteredAtUtc,
                     enteredBy = x.EnteredByUser != null ? x.EnteredByUser.FullName : string.Empty,
-                    trailerNumber = x.Trailer != null ? x.Trailer.TrailerNumber : string.Empty,
-                    photoCount = x.Photos.Count
+                    trailerNumber = x.Trailer != null ? x.Trailer.TrailerNumber : string.Empty
                 })
         });
     }
@@ -149,7 +146,6 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
     public async Task<IActionResult> Get(int entryId)
     {
         var entry = await dbContext.FuelEntries
-            .Include(x => x.Photos)
             .Include(x => x.FuelReport)
             .ThenInclude(report => report!.Entries)
             .ThenInclude(reportEntry => reportEntry.EnteredByUser)

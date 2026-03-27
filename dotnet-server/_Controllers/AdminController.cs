@@ -60,8 +60,6 @@ public class AdminController(AppDbContext dbContext) : ControllerBase
         var report = await dbContext.FuelReports
             .Include(x => x.CreatedByUser)
             .Include(x => x.Entries)
-            .ThenInclude(e => e.Photos)
-            .Include(x => x.Entries)
             .ThenInclude(e => e.EnteredByUser)
             .Include(x => x.Entries)
             .ThenInclude(e => e.Trailer)
@@ -99,8 +97,7 @@ public class AdminController(AppDbContext dbContext) : ControllerBase
                     verificationStatus = x.VerificationStatus.ToString(),
                     x.EnteredAtUtc,
                     enteredBy = x.EnteredByUser != null ? x.EnteredByUser.FullName : string.Empty,
-                    trailerNumber = x.Trailer != null ? x.Trailer.TrailerNumber : string.Empty,
-                    photoCount = x.Photos.Count
+                    trailerNumber = x.Trailer != null ? x.Trailer.TrailerNumber : string.Empty
                 })
         });
     }

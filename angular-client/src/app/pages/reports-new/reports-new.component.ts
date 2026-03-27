@@ -33,10 +33,7 @@ export class ReportsNewComponent implements OnInit {
   reportDate = new Date().toISOString().slice(0, 10);
   overallFuelingTankLevelStart: number | null = null;
   overallFuelingTankLevelEnd: number | null = null;
-  startGaugePhoto: File | null = null;
-  endGaugePhoto: File | null = null;
   readonly submitInProgress = signal(false);
-  readonly ocrInProgress = signal(false);
   readonly submitMessage = signal<string | null>(null);
 
   entry: Entry = this.getDefaultEntry();
@@ -48,7 +45,7 @@ export class ReportsNewComponent implements OnInit {
   overallTotal = computed(() => this.redTotal() + this.clearTotal() + this.defTotal());
 
   ngOnInit(): void {
-    this.restoreDraft();
+    this.clearLegacyDraftData();
   }
 
   saveEntry() {
@@ -66,34 +63,10 @@ export class ReportsNewComponent implements OnInit {
 
     this.entries.set([...this.entries(), { ...this.entry, trailerNumber: this.entry.trailerNumber.trim() }]);
     this.entry = this.getDefaultEntry();
-    this.persistDraft();
   }
 
   deleteEntry(index: number) {
     this.entries.update((entries) => entries.filter((_, entryIndex) => entryIndex !== index));
-    this.persistDraft();
-  }
-
-  onDraftChange() {
-    this.persistDraft();
-  }
-
-  async onStartGaugePhotoSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    this.startGaugePhoto = input.files && input.files.length > 0 ? input.files[0] : null;
-    if (this.startGaugePhoto) {
-      await this.extractGaugeReading(this.startGaugePhoto, 'start');
-      this.persistDraft();
-    }
-  }
-
-  async onEndGaugePhotoSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    this.endGaugePhoto = input.files && input.files.length > 0 ? input.files[0] : null;
-    if (this.endGaugePhoto) {
-      await this.extractGaugeReading(this.endGaugePhoto, 'end');
-      this.persistDraft();
-    }
   }
 
   async submitReport(): Promise<void> {
@@ -101,11 +74,6 @@ export class ReportsNewComponent implements OnInit {
 
     if (this.entries().length === 0) {
       this.submitMessage.set('Add at least one entry before submitting.');
-      return;
-    }
-
-    if (!this.startGaugePhoto || !this.endGaugePhoto) {
-      this.submitMessage.set('Upload both start and end gauge photos before submitting.');
       return;
     }
 
@@ -134,9 +102,8 @@ export class ReportsNewComponent implements OnInit {
         )
       );
 
-      const createdEntryIds: number[] = [];
       for (const currentEntry of this.entries()) {
-        const entryResponse = await firstValueFrom(
+        await firstValueFrom(
           this.http.post<{ id: number }>(
             `${environment.apiBaseUrl}/reports/${createReportResponse.id}/entries`,
             {
@@ -150,13 +117,6 @@ export class ReportsNewComponent implements OnInit {
             { headers: this.auth.authHeaders() }
           )
         );
-
-        createdEntryIds.push(entryResponse.id);
-      }
-
-      if (createdEntryIds.length > 0) {
-        await this.uploadGaugePhoto(createdEntryIds[0], 'StartGauge', this.startGaugePhoto);
-        await this.uploadGaugePhoto(createdEntryIds[createdEntryIds.length - 1], 'EndGauge', this.endGaugePhoto);
       }
 
       await firstValueFrom(
@@ -165,9 +125,6 @@ export class ReportsNewComponent implements OnInit {
 
       this.entries.set([]);
       this.entry = this.getDefaultEntry();
-      this.clearDraft();
-      this.startGaugePhoto = null;
-      this.endGaugePhoto = null;
       this.submitMessage.set('Report submitted successfully.');
       await this.router.navigate(['/reports/mine']);
     } catch (error: unknown) {
@@ -185,49 +142,6 @@ export class ReportsNewComponent implements OnInit {
     }
   }
 
-  private async extractGaugeReading(file: File, position: 'start' | 'end'): Promise<void> {
-    this.ocrInProgress.set(true);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await firstValueFrom(
-        this.http.post<{ reading: number | null; rawText: string }>(
-          `${environment.apiBaseUrl}/reports/extract-gauge-reading`,
-          formData,
-          { headers: this.auth.authHeaders() }
-        )
-      );
-
-      if (typeof response.reading === 'number') {
-        if (position === 'start') {
-          this.overallFuelingTankLevelStart = response.reading;
-        } else {
-          this.overallFuelingTankLevelEnd = response.reading;
-        }
-
-        this.submitMessage.set(`Detected ${position} gauge reading: ${response.reading}. You can edit it before submitting.`);
-      } else {
-        this.submitMessage.set(`Could not confidently detect the ${position} gauge number. Please enter it manually.`);
-      }
-    } catch {
-      this.submitMessage.set(`Unable to read the ${position} gauge image right now. Please enter the number manually.`);
-    } finally {
-      this.ocrInProgress.set(false);
-    }
-  }
-
-  private async uploadGaugePhoto(entryId: number, photoType: 'StartGauge' | 'EndGauge', file: File): Promise<void> {
-    const formData = new FormData();
-    formData.append('photoType', photoType);
-    formData.append('file', file);
-
-    await firstValueFrom(
-      this.http.post(`${environment.apiBaseUrl}/entries/${entryId}/photos`, formData, { headers: this.auth.authHeaders() })
-    );
-  }
-
   private getDefaultEntry(): Entry {
     return {
       trailerNumber: '',
@@ -240,60 +154,12 @@ export class ReportsNewComponent implements OnInit {
     };
   }
 
-  private persistDraft() {
-    const payload = {
-      reportDate: this.reportDate,
-      overallFuelingTankLevelStart: this.overallFuelingTankLevelStart,
-      overallFuelingTankLevelEnd: this.overallFuelingTankLevelEnd,
-      entry: this.entry,
-      entries: this.entries(),
-    };
-
-    localStorage.setItem(this.getStorageKey(), JSON.stringify(payload));
-  }
-
-  private restoreDraft() {
-    const rawDraft = localStorage.getItem(this.getStorageKey());
-    if (!rawDraft) {
-      return;
-    }
-
-    try {
-      const parsedDraft = JSON.parse(rawDraft) as {
-        reportDate?: string;
-        overallFuelingTankLevelStart?: number | null;
-        overallFuelingTankLevelEnd?: number | null;
-        entry?: Entry;
-        entries?: Entry[];
-      };
-      if (parsedDraft.reportDate) {
-        this.reportDate = parsedDraft.reportDate;
-      }
-      if (typeof parsedDraft.overallFuelingTankLevelStart === 'number') {
-        this.overallFuelingTankLevelStart = parsedDraft.overallFuelingTankLevelStart;
-      }
-      if (typeof parsedDraft.overallFuelingTankLevelEnd === 'number') {
-        this.overallFuelingTankLevelEnd = parsedDraft.overallFuelingTankLevelEnd;
-      }
-
-      if (parsedDraft.entry) {
-        this.entry = { ...this.getDefaultEntry(), ...parsedDraft.entry };
-      }
-
-      if (Array.isArray(parsedDraft.entries)) {
-        this.entries.set(parsedDraft.entries.map((item) => ({ ...this.getDefaultEntry(), ...item })));
-      }
-    } catch {
-      this.clearDraft();
-    }
-  }
-
-  private clearDraft() {
-    localStorage.removeItem(this.getStorageKey());
-  }
-
-  private getStorageKey(): string {
+  private clearLegacyDraftData(): void {
+    localStorage.removeItem(this.reportDraftStorageKey);
     const currentUser = this.auth.user();
-    return currentUser ? `${this.reportDraftStorageKey}_${currentUser.id}` : this.reportDraftStorageKey;
+    if (currentUser) {
+      localStorage.removeItem(`${this.reportDraftStorageKey}_${currentUser.id}`);
+    }
   }
+
 }

@@ -24,7 +24,6 @@ public class ReportsController(AppDbContext dbContext, EmailService emailService
     {
         var report = await dbContext.FuelReports
             .Include(x => x.Entries)
-            .ThenInclude(e => e.Photos)
             .FirstOrDefaultAsync(x => x.Id == id);
 
         if (report is null) return null;

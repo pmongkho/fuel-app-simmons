@@ -13,7 +13,6 @@ interface FuelEntryDetail {
   enteredAtUtc: string;
   enteredBy: string;
   trailerNumber: string;
-  photoCount: number;
 }
 
 interface FuelReportDetail {
