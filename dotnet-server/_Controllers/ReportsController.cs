@@ -36,11 +36,15 @@ public class ReportsController(AppDbContext dbContext, EmailService emailService
     [Authorize(Roles = $"{nameof(UserRole.Employee)},{nameof(UserRole.Supervisor)},{nameof(UserRole.Admin)}")]
     public async Task<IActionResult> Create([FromBody] CreateReportRequest request)
     {
-        if (request.FuelingTankLevelStart is null || request.FuelingTankLevelEnd is null)
-            return BadRequest("Overall fueling tank start and end are required.");
-        if (request.FuelingTankLevelStart is < 0 or > 999999 || request.FuelingTankLevelEnd is < 0 or > 999999)
-            return BadRequest("Overall fueling tank levels must be between 0 and 999999.");
-        if (request.FuelingTankLevelEnd < request.FuelingTankLevelStart)
+        if (request.FuelingTankLevelStart is null)
+            return BadRequest("Overall fueling tank start is required.");
+        if (request.FuelingTankLevelStart is < 0 or > 999999)
+            return BadRequest("Overall fueling tank start must be between 0 and 999999.");
+
+        var fuelingTankLevelEnd = request.FuelingTankLevelEnd ?? request.FuelingTankLevelStart.Value;
+        if (fuelingTankLevelEnd is < 0 or > 999999)
+            return BadRequest("Overall fueling tank end must be between 0 and 999999.");
+        if (fuelingTankLevelEnd < request.FuelingTankLevelStart.Value)
             return BadRequest("Overall fueling tank end must be greater than or equal to start.");
 
         var userId = CurrentUserId;
@@ -49,7 +53,7 @@ public class ReportsController(AppDbContext dbContext, EmailService emailService
             ReportDate = request.ReportDate,
             CreatedByUserId = userId,
             FuelingTankLevelStart = request.FuelingTankLevelStart.Value,
-            FuelingTankLevelEnd = request.FuelingTankLevelEnd.Value,
+            FuelingTankLevelEnd = fuelingTankLevelEnd,
             CreatedAtUtc = DateTime.UtcNow
         };
         dbContext.FuelReports.Add(report);
@@ -123,6 +127,22 @@ public class ReportsController(AppDbContext dbContext, EmailService emailService
         report.FuelingTankLevelEnd = request.FuelingTankLevelEnd.Value;
         await dbContext.SaveChangesAsync();
         return Ok();
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var report = await dbContext.FuelReports.Include(x => x.Entries).FirstOrDefaultAsync(x => x.Id == id);
+        if (report is null) return NotFound();
+        if (!CanAccessAllReports() && report.CreatedByUserId != CurrentUserId) return Forbid();
+        if (report.Status != FuelReportStatus.Draft) return BadRequest("Only draft reports can be deleted.");
+        if (report.Entries.Count > 0) return BadRequest("Draft reports with entries cannot be deleted.");
+        if (report.StartGaugeSignedBySupervisorId is not null || report.EndGaugeSignedBySupervisorId is not null)
+            return BadRequest("Signed reports cannot be deleted.");
+
+        dbContext.FuelReports.Remove(report);
+        await dbContext.SaveChangesAsync();
+        return Ok(new { message = "Draft report deleted." });
     }
 
     [HttpPost("extract-gauge-reading")]
