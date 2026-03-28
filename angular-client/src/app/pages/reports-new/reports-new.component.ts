@@ -1,7 +1,7 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
@@ -17,6 +17,17 @@ interface Entry {
   verificationStatus: string;
 }
 
+interface DraftReportState {
+  reportId: number | null;
+  isStartGaugeLocked: boolean;
+  startGauge: number | null;
+  endGauge: number | null;
+  reportDate: string;
+  pendingLockRetry: boolean;
+}
+
+type ConfirmationAction = 'lock' | 'discard';
+
 @Component({
   selector: 'app-reports-new',
   standalone: true,
@@ -24,15 +35,26 @@ interface Entry {
   templateUrl: './reports-new.component.html',
   styleUrl: './reports-new.component.css',
 })
-export class ReportsNewComponent implements OnInit {
+export class ReportsNewComponent implements OnInit, OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly reportDraftStorageKey = 'fuel_report_draft';
+  private readonly onlineRetryHandler = () => {
+    void this.retryPendingLockIfNeeded();
+  };
 
   reportDate = new Date().toISOString().slice(0, 10);
   overallFuelingTankLevelStart: number | null = null;
   overallFuelingTankLevelEnd: number | null = null;
+  isStartGaugeLocked = false;
+  private draftReportId: number | null = null;
+  private creatingDraftReport = false;
+  pendingLockRetry = false;
+  confirmDialogOpen = false;
+  confirmDialogTitle = '';
+  confirmDialogBody = '';
+  private confirmDialogAction: ConfirmationAction | null = null;
   readonly submitInProgress = signal(false);
   readonly submitMessage = signal<string | null>(null);
 
@@ -45,7 +67,12 @@ export class ReportsNewComponent implements OnInit {
   overallTotal = computed(() => this.redTotal() + this.clearTotal() + this.defTotal());
 
   ngOnInit(): void {
-    this.clearLegacyDraftData();
+    this.hydrateDraftState();
+    window.addEventListener('online', this.onlineRetryHandler);
+  }
+
+  ngOnDestroy(): void {
+    window.removeEventListener('online', this.onlineRetryHandler);
   }
 
   saveEntry() {
@@ -69,6 +96,126 @@ export class ReportsNewComponent implements OnInit {
     this.entries.update((entries) => entries.filter((_, entryIndex) => entryIndex !== index));
   }
 
+  requestLockStartGauge(): void {
+    this.submitMessage.set(null);
+
+    if (this.overallFuelingTankLevelStart === null) {
+      this.submitMessage.set('Enter overall fueling tank start before locking.');
+      return;
+    }
+
+    this.openConfirmationDialog(
+      'Confirm Start Gauge',
+      `Is the start gauge reading ${this.overallFuelingTankLevelStart} correct? Once locked, it cannot be edited unless the draft is discarded.`,
+      'lock'
+    );
+  }
+
+  requestDiscardDraft(): void {
+    this.submitMessage.set(null);
+    this.openConfirmationDialog(
+      'Discard Draft Report',
+      'Discard this draft report and unlock the start gauge? This will remove unsent report data.',
+      'discard'
+    );
+  }
+
+  async confirmDialogProceed(): Promise<void> {
+    if (!this.confirmDialogAction) return;
+    const action = this.confirmDialogAction;
+    this.closeConfirmationDialog();
+
+    if (action === 'lock') {
+      await this.lockStartGauge();
+      return;
+    }
+
+    await this.discardDraftReport();
+  }
+
+  closeConfirmationDialog(): void {
+    this.confirmDialogOpen = false;
+    this.confirmDialogTitle = '';
+    this.confirmDialogBody = '';
+    this.confirmDialogAction = null;
+  }
+
+  async retryDraftLock(): Promise<void> {
+    await this.lockStartGauge();
+  }
+
+  private async lockStartGauge(): Promise<void> {
+    if (this.overallFuelingTankLevelStart === null) {
+      this.submitMessage.set('Enter overall fueling tank start before locking.');
+      return;
+    }
+
+    try {
+      const reportId = await this.ensureDraftReportCreated();
+      if (!reportId) {
+        this.submitMessage.set('Unable to lock start gauge. Please try again.');
+        return;
+      }
+
+      this.isStartGaugeLocked = true;
+      this.pendingLockRetry = false;
+      this.persistDraftState();
+      this.submitMessage.set('Start gauge locked and saved. Supervisor sign-off can be completed now.');
+    } catch (error: unknown) {
+      if (this.isNetworkError(error)) {
+        this.pendingLockRetry = true;
+        this.persistDraftState();
+        this.submitMessage.set('Network issue while locking start gauge. Reconnect and click "Retry Lock" to continue.');
+        return;
+      }
+
+      const message =
+        typeof error === 'object' &&
+        error !== null &&
+        'error' in error &&
+        typeof (error as { error?: unknown }).error === 'string'
+          ? (error as { error: string }).error
+          : 'Unable to lock start gauge. Please try again.';
+
+      this.submitMessage.set(message);
+    }
+  }
+
+  private async discardDraftReport(): Promise<void> {
+    this.submitMessage.set(null);
+
+    if (this.isStartGaugeLocked && this.draftReportId === null) {
+      this.submitMessage.set('Start gauge is locked but no draft id was found. Please refresh and retry.');
+      return;
+    }
+
+    if (!this.draftReportId) {
+      this.resetDraftState();
+      this.submitMessage.set('Draft cleared.');
+      return;
+    }
+
+    try {
+      await firstValueFrom(
+        this.http.delete(`${environment.apiBaseUrl}/reports/${this.draftReportId}`, {
+          headers: this.auth.authHeaders(),
+        })
+      );
+
+      this.resetDraftState();
+      this.submitMessage.set('Draft report discarded.');
+    } catch (error: unknown) {
+      const message =
+        typeof error === 'object' &&
+        error !== null &&
+        'error' in error &&
+        typeof (error as { error?: unknown }).error === 'string'
+          ? (error as { error: string }).error
+          : 'Unable to discard draft report.';
+      this.submitMessage.set(message);
+    }
+  }
+
   async submitReport(): Promise<void> {
     this.submitMessage.set(null);
 
@@ -87,12 +234,23 @@ export class ReportsNewComponent implements OnInit {
       return;
     }
 
+    if (!this.isStartGaugeLocked) {
+      this.submitMessage.set('Lock the start gauge before submitting this report.');
+      return;
+    }
+
     this.submitInProgress.set(true);
 
     try {
-      const createReportResponse = await firstValueFrom(
-        this.http.post<{ id: number; status: string }>(
-          `${environment.apiBaseUrl}/reports`,
+      const reportId = await this.ensureDraftReportCreated();
+      if (!reportId) {
+        this.submitMessage.set('Enter overall fueling tank start before submitting.');
+        return;
+      }
+
+      await firstValueFrom(
+        this.http.put(
+          `${environment.apiBaseUrl}/reports/${reportId}`,
           {
             reportDate: this.reportDate,
             fuelingTankLevelStart: this.overallFuelingTankLevelStart,
@@ -105,7 +263,7 @@ export class ReportsNewComponent implements OnInit {
       for (const currentEntry of this.entries()) {
         await firstValueFrom(
           this.http.post<{ id: number }>(
-            `${environment.apiBaseUrl}/reports/${createReportResponse.id}/entries`,
+            `${environment.apiBaseUrl}/reports/${reportId}/entries`,
             {
               trailerNumber: currentEntry.trailerNumber,
               isTankFull: currentEntry.trailerTankFull,
@@ -120,11 +278,12 @@ export class ReportsNewComponent implements OnInit {
       }
 
       await firstValueFrom(
-        this.http.post(`${environment.apiBaseUrl}/reports/${createReportResponse.id}/submit`, {}, { headers: this.auth.authHeaders() })
+        this.http.post(`${environment.apiBaseUrl}/reports/${reportId}/submit`, {}, { headers: this.auth.authHeaders() })
       );
 
       this.entries.set([]);
       this.entry = this.getDefaultEntry();
+      this.resetDraftState();
       this.submitMessage.set('Report submitted successfully.');
       await this.router.navigate(['/reports/mine']);
     } catch (error: unknown) {
@@ -154,12 +313,107 @@ export class ReportsNewComponent implements OnInit {
     };
   }
 
-  private clearLegacyDraftData(): void {
-    localStorage.removeItem(this.reportDraftStorageKey);
+  private async ensureDraftReportCreated(): Promise<number | null> {
+    if (this.draftReportId) return this.draftReportId;
+    if (this.creatingDraftReport) return null;
+    if (this.overallFuelingTankLevelStart === null) return null;
+
+    this.creatingDraftReport = true;
+    try {
+      const createReportResponse = await firstValueFrom(
+        this.http.post<{ id: number; status: string }>(
+          `${environment.apiBaseUrl}/reports`,
+          {
+            reportDate: this.reportDate,
+            fuelingTankLevelStart: this.overallFuelingTankLevelStart,
+            fuelingTankLevelEnd: this.overallFuelingTankLevelStart,
+          },
+          { headers: this.auth.authHeaders() }
+        )
+      );
+      this.draftReportId = createReportResponse.id;
+      this.persistDraftState();
+      return createReportResponse.id;
+    } finally {
+      this.creatingDraftReport = false;
+    }
+  }
+
+  private async retryPendingLockIfNeeded(): Promise<void> {
+    if (!this.pendingLockRetry) return;
+    await this.lockStartGauge();
+  }
+
+  private persistDraftState(): void {
+    const key = this.draftStorageKeyForUser();
+    if (!key) return;
+
+    const state: DraftReportState = {
+      reportId: this.draftReportId,
+      isStartGaugeLocked: this.isStartGaugeLocked,
+      startGauge: this.overallFuelingTankLevelStart,
+      endGauge: this.overallFuelingTankLevelEnd,
+      reportDate: this.reportDate,
+      pendingLockRetry: this.pendingLockRetry,
+    };
+
+    localStorage.setItem(key, JSON.stringify(state));
+  }
+
+  private hydrateDraftState(): void {
+    const key = this.draftStorageKeyForUser();
+    if (!key) return;
+
+    const rawState = localStorage.getItem(key);
+    if (!rawState) return;
+
+    try {
+      const parsed = JSON.parse(rawState) as DraftReportState;
+      this.draftReportId = parsed.reportId;
+      this.isStartGaugeLocked = parsed.isStartGaugeLocked;
+      this.overallFuelingTankLevelStart = parsed.startGauge;
+      this.overallFuelingTankLevelEnd = parsed.endGauge;
+      this.reportDate = parsed.reportDate || this.reportDate;
+      this.pendingLockRetry = parsed.pendingLockRetry;
+    } catch {
+      localStorage.removeItem(key);
+    }
+  }
+
+  private resetDraftState(): void {
+    this.draftReportId = null;
+    this.isStartGaugeLocked = false;
+    this.pendingLockRetry = false;
+    this.overallFuelingTankLevelStart = null;
+    this.overallFuelingTankLevelEnd = null;
+    this.removePersistedDraftState();
+  }
+
+  private removePersistedDraftState(): void {
+    const key = this.draftStorageKeyForUser();
+    if (key) localStorage.removeItem(key);
+
     const currentUser = this.auth.user();
     if (currentUser) {
       localStorage.removeItem(`${this.reportDraftStorageKey}_${currentUser.id}`);
     }
+  }
+
+  private draftStorageKeyForUser(): string | null {
+    const currentUser = this.auth.user();
+    if (!currentUser) return null;
+    return `${this.reportDraftStorageKey}_${currentUser.id}`;
+  }
+
+  private openConfirmationDialog(title: string, body: string, action: ConfirmationAction): void {
+    this.confirmDialogTitle = title;
+    this.confirmDialogBody = body;
+    this.confirmDialogAction = action;
+    this.confirmDialogOpen = true;
+  }
+
+  private isNetworkError(error: unknown): error is HttpErrorResponse {
+    return error instanceof HttpErrorResponse && error.status === 0;
   }
 
 }
