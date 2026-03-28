@@ -1,39 +1,128 @@
 <section class="space-y-4" *ngIf="report as currentReport; else statusState">
   <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-      <h2 class="text-2xl font-semibold">Supervisor Report Detail <span class="text-slate-500">- {{ currentReport.reportDate }}</span></h2>
-      <a routerLink="/supervisor/entries" class="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">Back to queue</a>
+      <h2 class="text-2xl font-semibold">
+        Supervisor Report Detail
+        <span class="text-slate-500">- {{ currentReport.reportDate }}</span>
+      </h2>
+      <a
+        routerLink="/supervisor/entries"
+        class="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+        >Back to queue</a
+      >
     </div>
-    <p class="mt-3 text-sm text-slate-600">Submitted by: {{ currentReport.createdBy }} (User ID: {{ currentReport.createdByUserId }})</p>
+    <p class="mt-3 text-sm text-slate-600">
+      Submitted by: {{ currentReport.createdBy }} (User ID: {{ currentReport.createdByUserId }})
+    </p>
 
     <div class="mt-4 grid gap-2 text-sm sm:grid-cols-3 lg:grid-cols-4">
-      <div class="rounded-lg border border-slate-200 p-3">Report Status: <strong>{{ currentReport.status }}</strong></div>
-      <div class="rounded-lg border border-slate-200 p-3">Red Diesel: <strong>{{ currentReport.totalRedDiesel }} gal</strong></div>
-      <div class="rounded-lg border border-slate-200 p-3">Clear Diesel: <strong>{{ currentReport.totalClearDiesel }} gal</strong></div>
-      <div class="rounded-lg border border-slate-200 p-3">DEF: <strong>{{ currentReport.totalDef }} gal</strong></div>
-      <div class="rounded-lg border border-slate-200 p-3">Overall: <strong>{{ currentReport.overallTotalGallons }} gal</strong></div>
-      <div class="rounded-lg border border-slate-200 p-3">Overall Tank Start: <strong>{{ currentReport.fuelingTankLevelStart }}</strong></div>
-      <div class="rounded-lg border border-slate-200 p-3">Overall Tank End: <strong>{{ currentReport.fuelingTankLevelEnd }}</strong></div>
-      <div class="rounded-lg border border-slate-200 p-3">Entries: <strong>{{ currentReport.entriesCount }}</strong></div>
-      <div class="rounded-lg border border-slate-200 p-3">Created: <strong>{{ currentReport.createdAtUtc | date: 'short' }}</strong></div>
-      <div class="rounded-lg border border-slate-200 p-3">Submitted: <strong>{{ currentReport.submittedAtUtc ? (currentReport.submittedAtUtc | date: 'short') : '—' }}</strong></div>
+      <div class="rounded-lg border border-slate-200 p-3">
+        Report Status: <strong>{{ currentReport.status }}</strong>
+      </div>
+      <div class="rounded-lg border border-slate-200 p-3">
+        Red Diesel: <strong>{{ currentReport.totalRedDiesel }} gal</strong>
+      </div>
+      <div class="rounded-lg border border-slate-200 p-3">
+        Clear Diesel: <strong>{{ currentReport.totalClearDiesel }} gal</strong>
+      </div>
+      <div class="rounded-lg border border-slate-200 p-3">
+        DEF: <strong>{{ currentReport.totalDef }} gal</strong>
+      </div>
+      <div class="rounded-lg border border-slate-200 p-3">
+        Overall: <strong>{{ currentReport.overallTotalGallons }} gal</strong>
+      </div>
+      <div class="rounded-lg border border-slate-200 p-3">
+        Fueling Tank Start: <strong>{{ currentReport.fuelingTankLevelStart }}</strong>
+      </div>
+      <div class="rounded-lg border border-slate-200 p-3">
+        Fueling Tank End: <strong>{{ currentReport.fuelingTankLevelEnd }}</strong>
+      </div>
+      <div class="rounded-lg border border-slate-200 p-3">
+        Entries: <strong>{{ currentReport.entriesCount }}</strong>
+      </div>
+      <div class="rounded-lg border border-slate-200 p-3">
+        Created: <strong>{{ currentReport.createdAtUtc | date: 'short' }}</strong>
+      </div>
+      <div class="rounded-lg border border-slate-200 p-3">
+        Submitted:
+        <strong>{{
+          currentReport.submittedAtUtc ? (currentReport.submittedAtUtc | date: 'short') : '—'
+        }}</strong>
+      </div>
     </div>
 
     <div class="mt-4 grid gap-3 rounded-lg border border-slate-200 p-4 sm:grid-cols-2">
       <div class="space-y-2">
-        <p class="text-sm font-semibold text-slate-800">Start Gauge Sign-off</p>
-        <p class="text-xs text-slate-500">Signed: {{ currentReport.startGaugeSignedAtUtc ? (currentReport.startGaugeSignedAtUtc | date: 'short') : 'Not signed' }}</p>
-        <input [(ngModel)]="startSignatureName" placeholder="Supervisor name" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
-        <input [(ngModel)]="startSignaturePin" placeholder="PIN" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
-        <button type="button" class="rounded-md bg-sky-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60" [disabled]="isSubmitting" (click)="signOffStartGauge()">Sign Start</button>
+        <div class="flex items-start justify-evenly">
+          <div>
+            <p class="text-sm font-semibold text-slate-800">Start Gauge Sign-off</p>
+            <p class="text-xs text-slate-500">
+              Signed:
+              {{
+                currentReport.startGaugeSignedAtUtc
+                  ? (currentReport.startGaugeSignedAtUtc | date: 'short')
+                  : 'Not signed'
+              }}
+            </p>
+          </div>
+          <p>{{ currentReport.fuelingTankLevelStart }}</p>
+        </div>
+        <input
+          [(ngModel)]="startSignatureName"
+          placeholder="Supervisor name"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2"
+        />
+        <input
+          [(ngModel)]="startSignaturePin"
+          placeholder="PIN"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2"
+        />
+        <button
+          type="button"
+          class="rounded-md bg-sky-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          [disabled]="isSubmitting"
+          (click)="signOffStartGauge()"
+        >
+          Sign Start
+        </button>
       </div>
 
       <div class="space-y-2">
+        <div class="flex items-center justify-evenly">
+          <div>
+            <p class="text-xs text-slate-500">
+              Signed:
+              {{
+                currentReport.endGaugeSignedAtUtc
+                  ? (currentReport.endGaugeSignedAtUtc | date: 'short')
+                  : 'Not signed'
+              }}
+            </p>
+          </div>
+          <div>
+            <p>{{ currentReport.fuelingTankLevelEnd }}</p>
+          </div>
+        </div>
         <p class="text-sm font-semibold text-slate-800">End Gauge Sign-off</p>
-        <p class="text-xs text-slate-500">Signed: {{ currentReport.endGaugeSignedAtUtc ? (currentReport.endGaugeSignedAtUtc | date: 'short') : 'Not signed' }}</p>
-        <input [(ngModel)]="endSignatureName" placeholder="Supervisor name" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
-        <input [(ngModel)]="endSignaturePin" placeholder="PIN" class="w-full rounded-lg border border-slate-300 px-3 py-2" />
-        <button type="button" class="rounded-md bg-sky-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60" [disabled]="isSubmitting" (click)="signOffEndGauge()">Sign End</button>
+
+        <input
+          [(ngModel)]="endSignatureName"
+          placeholder="Supervisor name"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2"
+        />
+        <input
+          [(ngModel)]="endSignaturePin"
+          placeholder="PIN"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2"
+        />
+        <button
+          type="button"
+          class="rounded-md bg-sky-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          [disabled]="isSubmitting"
+          (click)="signOffEndGauge()"
+        >
+          Sign End
+        </button>
       </div>
     </div>
     <p *ngIf="actionMessage" class="mt-3 text-sm text-slate-700">{{ actionMessage }}</p>
