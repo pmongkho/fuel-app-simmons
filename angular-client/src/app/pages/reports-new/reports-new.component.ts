@@ -80,7 +80,7 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
 
   saveEntry() {
     if (this.isFormLockedUntilStartSignOff()) {
-      this.submitMessage.set('The fuel form unlocks after a supervisor signs off the start gauge.');
+      this.submitMessage.set('The fuel form stays locked until the start gauge is locked and supervisor-signed.');
       return;
     }
 
@@ -102,7 +102,7 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
 
   deleteEntry(index: number) {
     if (this.isFormLockedUntilStartSignOff()) {
-      this.submitMessage.set('The fuel form unlocks after a supervisor signs off the start gauge.');
+      this.submitMessage.set('The fuel form stays locked until the start gauge is locked and supervisor-signed.');
       return;
     }
 
@@ -440,7 +440,7 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
   }
 
   isFormLockedUntilStartSignOff(): boolean {
-    return this.isStartGaugeLocked && !this.isStartGaugeSignedOff;
+    return !this.isStartGaugeSignedOff;
   }
 
   async refreshSupervisorSignOffStatus(): Promise<void> {
