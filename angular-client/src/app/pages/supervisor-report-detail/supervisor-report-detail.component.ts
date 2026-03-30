@@ -62,6 +62,10 @@ export class SupervisorReportDetailComponent implements OnInit {
   actionMessage: string | null = null;
   isSubmitting = false;
 
+  get canSign(): boolean {
+    return this.auth.hasRole('Supervisor');
+  }
+
   ngOnInit(): void {
     this.route.paramMap.subscribe((params: ParamMap) => {
       this.loadReport(params);
@@ -102,6 +106,11 @@ export class SupervisorReportDetailComponent implements OnInit {
   }
 
   signOffStartGauge(): void {
+    if (!this.canSign) {
+      this.actionMessage = 'Admins can view this page but only supervisors can sign.';
+      return;
+    }
+
     if (!this.report || this.startSignatureName.trim().length < 3 || this.startSignaturePin.trim().length < 4 || this.isSubmitting) {
       return;
     }
@@ -128,6 +137,11 @@ export class SupervisorReportDetailComponent implements OnInit {
   }
 
   signOffEndGauge(): void {
+    if (!this.canSign) {
+      this.actionMessage = 'Admins can view this page but only supervisors can sign.';
+      return;
+    }
+
     if (!this.report || this.endSignatureName.trim().length < 3 || this.endSignaturePin.trim().length < 4 || this.isSubmitting) {
       return;
     }

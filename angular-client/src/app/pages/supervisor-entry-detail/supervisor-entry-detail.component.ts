@@ -73,6 +73,10 @@ export class SupervisorEntryDetailComponent implements OnInit {
   actionMessage: string | null = null;
   isSubmitting = false;
 
+  get canSign(): boolean {
+    return this.auth.hasRole('Supervisor');
+  }
+
 
   ngOnInit(): void {
     this.route.paramMap.subscribe((params) => this.loadEntry(params));
@@ -118,6 +122,11 @@ export class SupervisorEntryDetailComponent implements OnInit {
 
 
   approve(): void {
+    if (!this.canSign) {
+      this.actionMessage = 'Admins can view this page but only supervisors can sign approvals/rejections.';
+      return;
+    }
+
     if (!this.entry || !this.canApprove) {
       return;
     }
@@ -147,6 +156,11 @@ export class SupervisorEntryDetailComponent implements OnInit {
   }
 
   reject(): void {
+    if (!this.canSign) {
+      this.actionMessage = 'Admins can view this page but only supervisors can sign approvals/rejections.';
+      return;
+    }
+
     if (!this.entry || !this.canReject) {
       return;
     }

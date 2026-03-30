@@ -9,6 +9,10 @@
     </div>
   </header>
 
+  <p *ngIf="!canSign" class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+    Admin view only: only users with the Supervisor role can approve/reject entries.
+  </p>
+
   @if (decision === 'approved') {
     <p class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">Entry approved and digitally signed by {{ signatureName }}.</p>
   }
@@ -74,8 +78,8 @@
 
   <article class="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
     <h3 class="text-base font-semibold text-slate-900">Verification checklist</h3>
-    <label class="flex items-start gap-2 text-sm text-slate-700"><input type="checkbox" class="mt-0.5" [(ngModel)]="meterVerified" /> Meter readings are consistent.</label>
-    <label class="flex items-start gap-2 text-sm text-slate-700"><input type="checkbox" class="mt-0.5" [(ngModel)]="fuelAmountVerified" /> Gallons submitted align with gauge delta.</label>
+    <label class="flex items-start gap-2 text-sm text-slate-700"><input type="checkbox" class="mt-0.5" [(ngModel)]="meterVerified" [disabled]="!canSign" /> Meter readings are consistent.</label>
+    <label class="flex items-start gap-2 text-sm text-slate-700"><input type="checkbox" class="mt-0.5" [(ngModel)]="fuelAmountVerified" [disabled]="!canSign" /> Gallons submitted align with gauge delta.</label>
   </article>
 
   <article class="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -87,30 +91,30 @@
     <div class="grid gap-3 sm:grid-cols-2">
       <label class="text-sm font-medium text-slate-700">
         Printed name
-        <input type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal" [(ngModel)]="signatureName" placeholder="Supervisor full name" />
+        <input type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal disabled:cursor-not-allowed disabled:bg-slate-100" [(ngModel)]="signatureName" [disabled]="!canSign" placeholder="Supervisor full name" />
       </label>
 
       <label class="text-sm font-medium text-slate-700">
         Signature PIN
-        <input type="password" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal" [(ngModel)]="signaturePin" placeholder="••••" />
+        <input type="password" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal disabled:cursor-not-allowed disabled:bg-slate-100" [(ngModel)]="signaturePin" [disabled]="!canSign" placeholder="••••" />
       </label>
     </div>
 
     <label class="flex items-start gap-2 text-sm text-slate-700">
-      <input type="checkbox" class="mt-0.5" [(ngModel)]="attestationChecked" />
+      <input type="checkbox" class="mt-0.5" [(ngModel)]="attestationChecked" [disabled]="!canSign" />
       I attest that I have reviewed this entry and the provided evidence.
     </label>
 
     <label class="block text-sm font-medium text-slate-700">
       Rejection reason (required for reject)
-      <textarea class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal" [(ngModel)]="rejectionReason" rows="3" placeholder="Explain why this entry should be corrected or resubmitted"></textarea>
+      <textarea class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal disabled:cursor-not-allowed disabled:bg-slate-100" [(ngModel)]="rejectionReason" [disabled]="!canSign" rows="3" placeholder="Explain why this entry should be corrected or resubmitted"></textarea>
     </label>
 
     <p class="text-sm text-slate-600" *ngIf="actionMessage">{{ actionMessage }}</p>
 
     <div class="flex flex-wrap gap-3 pt-1">
-      <button class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white enabled:hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50" type="button" (click)="approve()" [disabled]="!canApprove">Approve + Sign</button>
-      <button class="rounded-lg bg-rose-700 px-4 py-2 text-sm font-semibold text-white enabled:hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-50" type="button" (click)="reject()" [disabled]="!canReject">Reject</button>
+      <button class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white enabled:hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50" type="button" (click)="approve()" [disabled]="!canSign || !canApprove">Approve + Sign</button>
+      <button class="rounded-lg bg-rose-700 px-4 py-2 text-sm font-semibold text-white enabled:hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-50" type="button" (click)="reject()" [disabled]="!canSign || !canReject">Reject</button>
     </div>
   </article>
 </section>

@@ -20,6 +20,7 @@ interface Entry {
 interface DraftReportState {
   reportId: number | null;
   isStartGaugeLocked: boolean;
+  isStartGaugeSignedOff: boolean;
   startGauge: number | null;
   endGauge: number | null;
   reportDate: string;
@@ -48,6 +49,7 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
   overallFuelingTankLevelStart: number | null = null;
   overallFuelingTankLevelEnd: number | null = null;
   isStartGaugeLocked = false;
+  isStartGaugeSignedOff = false;
   private draftReportId: number | null = null;
   private creatingDraftReport = false;
   pendingLockRetry = false;
@@ -69,6 +71,7 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.hydrateDraftState();
     window.addEventListener('online', this.onlineRetryHandler);
+    void this.refreshSupervisorSignOffStatus();
   }
 
   ngOnDestroy(): void {
@@ -76,6 +79,11 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
   }
 
   saveEntry() {
+    if (this.isFormLockedUntilStartSignOff()) {
+      this.submitMessage.set('The fuel form unlocks after a supervisor signs off the start gauge.');
+      return;
+    }
+
     this.submitMessage.set(null);
 
     if (!this.entry.trailerNumber.trim()) {
@@ -93,6 +101,11 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
   }
 
   deleteEntry(index: number) {
+    if (this.isFormLockedUntilStartSignOff()) {
+      this.submitMessage.set('The fuel form unlocks after a supervisor signs off the start gauge.');
+      return;
+    }
+
     this.entries.update((entries) => entries.filter((_, entryIndex) => entryIndex !== index));
   }
 
@@ -158,9 +171,11 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
       }
 
       this.isStartGaugeLocked = true;
+      this.isStartGaugeSignedOff = false;
       this.pendingLockRetry = false;
       this.persistDraftState();
       this.submitMessage.set('Start gauge locked and saved. Supervisor sign-off can be completed now.');
+      await this.refreshSupervisorSignOffStatus();
     } catch (error: unknown) {
       if (this.isNetworkError(error)) {
         this.pendingLockRetry = true;
@@ -218,6 +233,11 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
 
   async submitReport(): Promise<void> {
     this.submitMessage.set(null);
+
+    if (this.isFormLockedUntilStartSignOff()) {
+      this.submitMessage.set('The fuel form is locked until a supervisor signs off the start gauge.');
+      return;
+    }
 
     if (this.entries().length === 0) {
       this.submitMessage.set('Add at least one entry before submitting.');
@@ -351,6 +371,7 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
     const state: DraftReportState = {
       reportId: this.draftReportId,
       isStartGaugeLocked: this.isStartGaugeLocked,
+      isStartGaugeSignedOff: this.isStartGaugeSignedOff,
       startGauge: this.overallFuelingTankLevelStart,
       endGauge: this.overallFuelingTankLevelEnd,
       reportDate: this.reportDate,
@@ -371,6 +392,7 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
       const parsed = JSON.parse(rawState) as DraftReportState;
       this.draftReportId = parsed.reportId;
       this.isStartGaugeLocked = parsed.isStartGaugeLocked;
+      this.isStartGaugeSignedOff = parsed.isStartGaugeSignedOff ?? false;
       this.overallFuelingTankLevelStart = parsed.startGauge;
       this.overallFuelingTankLevelEnd = parsed.endGauge;
       this.reportDate = parsed.reportDate || this.reportDate;
@@ -383,6 +405,7 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
   private resetDraftState(): void {
     this.draftReportId = null;
     this.isStartGaugeLocked = false;
+    this.isStartGaugeSignedOff = false;
     this.pendingLockRetry = false;
     this.overallFuelingTankLevelStart = null;
     this.overallFuelingTankLevelEnd = null;
@@ -414,6 +437,32 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
 
   private isNetworkError(error: unknown): error is HttpErrorResponse {
     return error instanceof HttpErrorResponse && error.status === 0;
+  }
+
+  isFormLockedUntilStartSignOff(): boolean {
+    return this.isStartGaugeLocked && !this.isStartGaugeSignedOff;
+  }
+
+  async refreshSupervisorSignOffStatus(): Promise<void> {
+    if (!this.draftReportId || !this.isStartGaugeLocked) return;
+
+    try {
+      const report = await firstValueFrom(
+        this.http.get<{ startGaugeSignedBySupervisorId: number | null }>(
+          `${environment.apiBaseUrl}/reports/${this.draftReportId}`,
+          { headers: this.auth.authHeaders() }
+        )
+      );
+
+      this.isStartGaugeSignedOff = report.startGaugeSignedBySupervisorId !== null;
+      this.persistDraftState();
+
+      if (this.isStartGaugeSignedOff) {
+        this.submitMessage.set('Start gauge has been signed off. You can now complete the fuel report.');
+      }
+    } catch {
+      // Ignore refresh failures and keep current local lock state.
+    }
   }
 
 }

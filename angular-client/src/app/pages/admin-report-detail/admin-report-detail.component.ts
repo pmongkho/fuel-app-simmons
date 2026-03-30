@@ -52,6 +52,18 @@ export class AdminReportDetailComponent implements OnInit {
   isLoading = true;
   errorMessage: string | null = null;
 
+  get isEmployeeView(): boolean {
+    return this.auth.hasRole('Employee');
+  }
+
+  get backLink(): string {
+    return this.isEmployeeView ? '/reports/mine' : '/admin/dashboard';
+  }
+
+  get backLabel(): string {
+    return this.isEmployeeView ? 'Back to my reports' : 'Back to dashboard';
+  }
+
   ngOnInit(): void {
     this.route.paramMap.subscribe((params: ParamMap) => {
       this.loadReport(params);
@@ -72,8 +84,12 @@ export class AdminReportDetailComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = null;
 
+    const endpoint = this.isEmployeeView
+      ? `${environment.apiBaseUrl}/reports/${reportId}`
+      : `${environment.apiBaseUrl}/admin/reports/${reportId}`;
+
     this.http
-      .get<FuelReportDetail>(`${environment.apiBaseUrl}/admin/reports/${reportId}`, { headers: this.auth.authHeaders() })
+      .get<FuelReportDetail>(endpoint, { headers: this.auth.authHeaders() })
       .subscribe({
         next: (report) => {
           this.report = report;

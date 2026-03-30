@@ -65,6 +65,37 @@ public class EmailService(
 {
     public async Task SendReportSubmittedAsync(FuelReport report, string employeeName)
     {
+        await SendReportNotificationAsync(
+            report,
+            subject: $"Fuel report submitted: {report.ReportDate:yyyy-MM-dd}",
+            textIntro: "A fuel report has been submitted.",
+            htmlIntro: "A fuel report has been submitted.",
+            timestampLabel: "Submitted at (UTC)",
+            timestamp: report.SubmittedAtUtc,
+            employeeName: employeeName);
+    }
+
+    public async Task SendReportCompletedAsync(FuelReport report, string employeeName)
+    {
+        await SendReportNotificationAsync(
+            report,
+            subject: $"Fuel report completed: {report.ReportDate:yyyy-MM-dd}",
+            textIntro: "A fuel report has been fully completed.",
+            htmlIntro: "A fuel report has been fully completed.",
+            timestampLabel: "Completed at (UTC)",
+            timestamp: report.EndGaugeSignedAtUtc,
+            employeeName: employeeName);
+    }
+
+    private async Task SendReportNotificationAsync(
+        FuelReport report,
+        string subject,
+        string textIntro,
+        string htmlIntro,
+        string timestampLabel,
+        DateTime? timestamp,
+        string employeeName)
+    {
         var recipients = await dbContext.NotificationRecipients.Where(x => x.IsActive).ToListAsync();
         if (recipients.Count == 0)
         {
@@ -83,7 +114,7 @@ public class EmailService(
                 {
                     FuelReportId = report.Id,
                     RecipientEmail = recipient.Email,
-                    Subject = BuildSubject(report),
+                    Subject = subject,
                     Status = "Skipped",
                     ErrorMessage = "Resend is not configured (missing ApiKey).",
                     SentAtUtc = DateTime.UtcNow
@@ -111,7 +142,7 @@ public class EmailService(
                     {
                         FuelReportId = report.Id,
                         RecipientEmail = recipient.Email,
-                        Subject = BuildSubject(report),
+                        Subject = subject,
                         Status = "Skipped",
                         ErrorMessage = "Resend is not configured (missing FromEmail).",
                         SentAtUtc = DateTime.UtcNow
@@ -128,8 +159,6 @@ public class EmailService(
 
         foreach (var recipient in recipients)
         {
-            var subject = BuildSubject(report);
-
             try
             {
                 var payload = new ResendSendEmailRequest
@@ -137,8 +166,8 @@ public class EmailService(
                     From = BuildFromAddress(options),
                     To = [recipient.Email],
                     Subject = subject,
-                    Text = BuildTextBody(report, employeeName),
-                    Html = BuildHtmlBody(report, employeeName)
+                    Text = BuildTextBody(report, employeeName, textIntro, timestampLabel, timestamp),
+                    Html = BuildHtmlBody(report, employeeName, htmlIntro, timestampLabel, timestamp)
                 };
 
                 var response = await httpClient.PostAsJsonAsync("emails", payload);
@@ -199,33 +228,31 @@ public class EmailService(
         await dbContext.SaveChangesAsync();
     }
 
-    private static string BuildSubject(FuelReport report) => $"Fuel report submitted: {report.ReportDate:yyyy-MM-dd}";
-
     private static string BuildFromAddress(ResendOptions options) =>
         string.IsNullOrWhiteSpace(options.FromName)
             ? options.FromEmail.Trim()
             : $"{options.FromName.Trim()} <{options.FromEmail.Trim()}>";
 
-    private static string BuildTextBody(FuelReport report, string employeeName) =>
+    private static string BuildTextBody(FuelReport report, string employeeName, string intro, string timestampLabel, DateTime? timestamp) =>
         $"""
-         A fuel report has been submitted.
+         {intro}
 
          Employee: {employeeName}
          Report date: {report.ReportDate:yyyy-MM-dd}
          Report ID: {report.Id}
-         Submitted at (UTC): {report.SubmittedAtUtc:yyyy-MM-dd HH:mm:ss}
+         {timestampLabel}: {timestamp:yyyy-MM-dd HH:mm:ss}
 
          Please review it in Fuel App.
          """;
 
-    private static string BuildHtmlBody(FuelReport report, string employeeName) =>
+    private static string BuildHtmlBody(FuelReport report, string employeeName, string intro, string timestampLabel, DateTime? timestamp) =>
         $"""
-         <p>A fuel report has been submitted.</p>
+         <p>{System.Net.WebUtility.HtmlEncode(intro)}</p>
          <ul>
            <li><strong>Employee:</strong> {System.Net.WebUtility.HtmlEncode(employeeName)}</li>
            <li><strong>Report date:</strong> {report.ReportDate:yyyy-MM-dd}</li>
            <li><strong>Report ID:</strong> {report.Id}</li>
-           <li><strong>Submitted at (UTC):</strong> {report.SubmittedAtUtc:yyyy-MM-dd HH:mm:ss}</li>
+           <li><strong>{System.Net.WebUtility.HtmlEncode(timestampLabel)}:</strong> {timestamp:yyyy-MM-dd HH:mm:ss}</li>
          </ul>
          <p>Please review it in Fuel App.</p>
          """;

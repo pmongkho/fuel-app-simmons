@@ -14,6 +14,9 @@
     <p class="mt-3 text-sm text-slate-600">
       Submitted by: {{ currentReport.createdBy }} (User ID: {{ currentReport.createdByUserId }})
     </p>
+    <p *ngIf="!canSign" class="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+      Admin view only: only users with the Supervisor role can sign start/end gauges.
+    </p>
 
     <div class="mt-4 grid gap-2 text-sm sm:grid-cols-3 lg:grid-cols-4">
       <div class="rounded-lg border border-slate-200 p-3">
@@ -69,18 +72,20 @@
         </div>
         <input
           [(ngModel)]="startSignatureName"
+          [disabled]="!canSign"
           placeholder="Supervisor name"
-          class="w-full rounded-lg border border-slate-300 px-3 py-2"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 disabled:cursor-not-allowed disabled:bg-slate-100"
         />
         <input
           [(ngModel)]="startSignaturePin"
+          [disabled]="!canSign"
           placeholder="PIN"
-          class="w-full rounded-lg border border-slate-300 px-3 py-2"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 disabled:cursor-not-allowed disabled:bg-slate-100"
         />
         <button
           type="button"
           class="rounded-md bg-sky-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
-          [disabled]="isSubmitting"
+          [disabled]="isSubmitting || !canSign"
           (click)="signOffStartGauge()"
         >
           Sign Start
@@ -107,18 +112,20 @@
 
         <input
           [(ngModel)]="endSignatureName"
+          [disabled]="!canSign"
           placeholder="Supervisor name"
-          class="w-full rounded-lg border border-slate-300 px-3 py-2"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 disabled:cursor-not-allowed disabled:bg-slate-100"
         />
         <input
           [(ngModel)]="endSignaturePin"
+          [disabled]="!canSign"
           placeholder="PIN"
-          class="w-full rounded-lg border border-slate-300 px-3 py-2"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 disabled:cursor-not-allowed disabled:bg-slate-100"
         />
         <button
           type="button"
           class="rounded-md bg-sky-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
-          [disabled]="isSubmitting"
+          [disabled]="isSubmitting || !canSign"
           (click)="signOffEndGauge()"
         >
           Sign End

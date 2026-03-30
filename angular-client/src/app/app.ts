@@ -15,7 +15,7 @@ export class App {
   readonly canAccessEmployee = computed(() => this.auth.hasRole('Employee', 'Admin'));
   readonly canAccessTrailers = computed(() => this.auth.hasRole('Employee', 'Supervisor', 'Admin'));
   readonly canAccessSupervisor = computed(() => this.auth.hasRole('Supervisor', 'Admin'));
-  readonly canAccessAdmin = computed(() => this.auth.hasRole('Admin'));
+  readonly canAccessAdmin = computed(() => this.auth.hasRole('Supervisor', 'Admin'));
   readonly mobileNavOpen = signal(false);
 
   toggleMobileNav(): void {
