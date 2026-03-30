@@ -17,6 +17,7 @@
             <th class="px-3 py-2 font-medium">Status</th>
             <th class="px-3 py-2 font-medium">Gallons</th>
             <th class="px-3 py-2 font-medium">Submitted</th>
+            <th class="px-3 py-2 font-medium">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -25,6 +26,9 @@
             <td class="px-3 py-2">{{ row.status }}</td>
             <td class="px-3 py-2">{{ row.overallTotalGallons }}</td>
             <td class="px-3 py-2">{{ row.submittedAtUtc || '-' }}</td>
+            <td class="px-3 py-2">
+              <a class="inline-flex rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100" [routerLink]="['/reports/mine', row.id]">Open</a>
+            </td>
           </tr>
         </tbody>
       </table>

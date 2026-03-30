@@ -20,18 +20,6 @@ public class ReportsController(AppDbContext dbContext, EmailService emailService
     private bool CanAccessAllReports() =>
         User.IsInRole(nameof(UserRole.Admin)) || User.IsInRole(nameof(UserRole.Supervisor));
 
-    private async Task<FuelReport?> FindAccessibleReportAsync(int id)
-    {
-        var report = await dbContext.FuelReports
-            .Include(x => x.Entries)
-            .FirstOrDefaultAsync(x => x.Id == id);
-
-        if (report is null) return null;
-        if (CanAccessAllReports() || report.CreatedByUserId == CurrentUserId) return report;
-
-        return null;
-    }
-
     [HttpPost]
     [Authorize(Roles = $"{nameof(UserRole.Employee)},{nameof(UserRole.Supervisor)},{nameof(UserRole.Admin)}")]
     public async Task<IActionResult> Create([FromBody] CreateReportRequest request)
@@ -64,8 +52,49 @@ public class ReportsController(AppDbContext dbContext, EmailService emailService
     [HttpGet("{id:int}")]
     public async Task<IActionResult> Get(int id)
     {
-        var report = await FindAccessibleReportAsync(id);
-        return report is null ? NotFound() : Ok(report);
+        var report = await dbContext.FuelReports
+            .Include(x => x.CreatedByUser)
+            .Include(x => x.Entries)
+            .ThenInclude(e => e.EnteredByUser)
+            .Include(x => x.Entries)
+            .ThenInclude(e => e.Trailer)
+            .FirstOrDefaultAsync(x => x.Id == id);
+
+        if (report is null) return NotFound();
+        if (!CanAccessAllReports() && report.CreatedByUserId != CurrentUserId) return Forbid();
+
+        return Ok(new
+        {
+            report.Id,
+            report.ReportDate,
+            createdBy = report.CreatedByUser != null ? report.CreatedByUser.FullName : string.Empty,
+            status = report.Status.ToString(),
+            report.TotalRedDiesel,
+            report.TotalClearDiesel,
+            report.TotalDef,
+            report.OverallTotalGallons,
+            report.FuelingTankLevelStart,
+            report.FuelingTankLevelEnd,
+            report.StartGaugeSignedBySupervisorId,
+            report.StartGaugeSignedAtUtc,
+            report.StartGaugeSupervisorSignatureName,
+            report.EndGaugeSignedBySupervisorId,
+            report.EndGaugeSignedAtUtc,
+            report.EndGaugeSupervisorSignatureName,
+            report.SubmittedAtUtc,
+            entries = report.Entries
+                .OrderBy(x => x.EnteredAtUtc)
+                .Select(x => new
+                {
+                    x.Id,
+                    fuelType = x.FuelType.ToString(),
+                    x.GallonsPumped,
+                    verificationStatus = x.VerificationStatus.ToString(),
+                    x.EnteredAtUtc,
+                    enteredBy = x.EnteredByUser != null ? x.EnteredByUser.FullName : string.Empty,
+                    trailerNumber = x.Trailer != null ? x.Trailer.TrailerNumber : string.Empty
+                })
+        });
     }
 
     [HttpGet("mine")]

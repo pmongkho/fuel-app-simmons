@@ -8,7 +8,7 @@ namespace dotnet_server.Api.Controllers;
 
 [ApiController]
 [Route("api/admin")]
-[Authorize(Roles = nameof(UserRole.Admin))]
+[Authorize(Roles = $"{nameof(UserRole.Admin)},{nameof(UserRole.Supervisor)}")]
 public class AdminController(AppDbContext dbContext) : ControllerBase
 {
     [HttpGet("dashboard")]
