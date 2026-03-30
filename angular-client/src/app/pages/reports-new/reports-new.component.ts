@@ -79,8 +79,8 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
   }
 
   saveEntry() {
-    if (this.isFormLockedUntilStartSignOff()) {
-      this.submitMessage.set('The fuel form unlocks after a supervisor signs off the start gauge.');
+    if (this.isFuelingSectionLocked()) {
+      this.submitMessage.set(this.lockedFormMessage());
       return;
     }
 
@@ -101,8 +101,8 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
   }
 
   deleteEntry(index: number) {
-    if (this.isFormLockedUntilStartSignOff()) {
-      this.submitMessage.set('The fuel form unlocks after a supervisor signs off the start gauge.');
+    if (this.isFuelingSectionLocked()) {
+      this.submitMessage.set(this.lockedFormMessage());
       return;
     }
 
@@ -234,8 +234,8 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
   async submitReport(): Promise<void> {
     this.submitMessage.set(null);
 
-    if (this.isFormLockedUntilStartSignOff()) {
-      this.submitMessage.set('The fuel form is locked until a supervisor signs off the start gauge.');
+    if (this.isFuelingSectionLocked()) {
+      this.submitMessage.set(this.lockedFormMessage());
       return;
     }
 
@@ -439,8 +439,24 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
     return error instanceof HttpErrorResponse && error.status === 0;
   }
 
-  isFormLockedUntilStartSignOff(): boolean {
+  isFuelingSectionLocked(): boolean {
+    return !this.isStartGaugeSignedOff;
+  }
+
+  isAwaitingSupervisorSignOff(): boolean {
     return this.isStartGaugeLocked && !this.isStartGaugeSignedOff;
+  }
+
+  isStartGaugeEntryStep(): boolean {
+    return !this.isStartGaugeLocked;
+  }
+
+  private lockedFormMessage(): string {
+    if (this.isStartGaugeEntryStep()) {
+      return 'Enter and confirm the start gauge first. The rest of the form stays locked until supervisor sign-off.';
+    }
+
+    return 'The start gauge is locked. Wait for supervisor sign-off before completing the rest of the form.';
   }
 
   async refreshSupervisorSignOffStatus(): Promise<void> {
