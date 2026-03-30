@@ -12,14 +12,15 @@ namespace dotnet_server.Api.Controllers;
 [ApiController]
 [Route("api/supervisor")]
 [Authorize(Roles = $"{nameof(UserRole.Supervisor)},{nameof(UserRole.Admin)}")]
-public class SupervisorController(AppDbContext dbContext) : ControllerBase
+public class SupervisorController(AppDbContext dbContext, EmailService emailService) : ControllerBase
 {
     [HttpGet("reports/pending")]
     public async Task<IActionResult> PendingReports([FromQuery] string? date)
     {
         var query = dbContext.FuelReports
             .Include(x => x.CreatedByUser)
-            .Where(x => x.Status == FuelReportStatus.Submitted);
+            .Where(x => x.Status == FuelReportStatus.Submitted ||
+                        (x.Status == FuelReportStatus.Draft && x.StartGaugeSignedBySupervisorId == null));
 
         if (!string.IsNullOrWhiteSpace(date))
         {
@@ -196,6 +197,7 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
     }
 
     [HttpPost("entries/{entryId:int}/approve")]
+    [Authorize(Roles = nameof(UserRole.Supervisor))]
     public async Task<IActionResult> Approve(int entryId, [FromBody] ApproveEntryRequest request)
     {
         var entry = await dbContext.FuelEntries.Include(x => x.FuelReport).ThenInclude(r => r!.Entries).FirstOrDefaultAsync(x => x.Id == entryId);
@@ -213,6 +215,7 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
     }
 
     [HttpPost("entries/{entryId:int}/reject")]
+    [Authorize(Roles = nameof(UserRole.Supervisor))]
     public async Task<IActionResult> Reject(int entryId, [FromBody] RejectEntryRequest request)
     {
         var entry = await dbContext.FuelEntries.Include(x => x.FuelReport).ThenInclude(r => r!.Entries).FirstOrDefaultAsync(x => x.Id == entryId);
@@ -230,6 +233,7 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
     }
 
     [HttpPost("reports/{reportId:int}/signoff-start")]
+    [Authorize(Roles = nameof(UserRole.Supervisor))]
     public async Task<IActionResult> SignOffStartGauge(int reportId, [FromBody] SignOffReportGaugeRequest request)
     {
         var report = await dbContext.FuelReports.FindAsync(reportId);
@@ -245,25 +249,35 @@ public class SupervisorController(AppDbContext dbContext) : ControllerBase
     }
 
     [HttpPost("reports/{reportId:int}/signoff-end")]
+    [Authorize(Roles = nameof(UserRole.Supervisor))]
     public async Task<IActionResult> SignOffEndGauge(int reportId, [FromBody] SignOffReportGaugeRequest request)
     {
-        var report = await dbContext.FuelReports.FindAsync(reportId);
+        var report = await dbContext.FuelReports
+            .Include(x => x.CreatedByUser)
+            .FirstOrDefaultAsync(x => x.Id == reportId);
         if (report is null) return NotFound();
 
         var supervisorId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         if (report.StartGaugeSignedBySupervisorId is null)
             return BadRequest("Start gauge sign-off is required before end gauge sign-off.");
-        if (report.StartGaugeSignedBySupervisorId == supervisorId)
-            return BadRequest("End gauge sign-off must be completed by a different supervisor.");
+        if (report.EndGaugeSignedBySupervisorId is not null)
+            return BadRequest("End gauge has already been signed off.");
 
         report.EndGaugeSignedBySupervisorId = supervisorId;
         report.EndGaugeSupervisorSignatureName = request.SignatureName;
         report.EndGaugeSignedAtUtc = DateTime.UtcNow;
 
+        var movedToCompleted = false;
         if (report.Status == FuelReportStatus.Submitted)
+        {
             report.Status = FuelReportStatus.Completed;
+            movedToCompleted = true;
+        }
 
         await dbContext.SaveChangesAsync();
+
+        if (movedToCompleted)
+            await emailService.SendReportCompletedAsync(report, report.CreatedByUser?.FullName ?? "Employee");
 
         return Ok(new { message = "End gauge signed successfully." });
     }
