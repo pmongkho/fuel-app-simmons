@@ -25,6 +25,8 @@ interface DraftReportState {
   endGauge: number | null;
   reportDate: string;
   pendingLockRetry: boolean;
+  entries: Entry[];
+  activeEntry: Entry;
 }
 
 type ConfirmationAction = 'lock' | 'discard';
@@ -98,6 +100,7 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
 
     this.entries.set([...this.entries(), { ...this.entry, trailerNumber: this.entry.trailerNumber.trim() }]);
     this.entry = this.getDefaultEntry();
+    this.persistDraftState();
   }
 
   deleteEntry(index: number) {
@@ -107,6 +110,7 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
     }
 
     this.entries.update((entries) => entries.filter((_, entryIndex) => entryIndex !== index));
+    this.persistDraftState();
   }
 
   requestLockStartGauge(): void {
@@ -155,6 +159,10 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
 
   async retryDraftLock(): Promise<void> {
     await this.lockStartGauge();
+  }
+
+  persistProgress(): void {
+    this.persistDraftState();
   }
 
   private async lockStartGauge(): Promise<void> {
@@ -376,6 +384,8 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
       endGauge: this.overallFuelingTankLevelEnd,
       reportDate: this.reportDate,
       pendingLockRetry: this.pendingLockRetry,
+      entries: this.entries(),
+      activeEntry: this.entry,
     };
 
     localStorage.setItem(key, JSON.stringify(state));
@@ -397,6 +407,8 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
       this.overallFuelingTankLevelEnd = parsed.endGauge;
       this.reportDate = parsed.reportDate || this.reportDate;
       this.pendingLockRetry = parsed.pendingLockRetry;
+      this.entries.set(Array.isArray(parsed.entries) ? parsed.entries : []);
+      this.entry = parsed.activeEntry ? { ...this.getDefaultEntry(), ...parsed.activeEntry } : this.getDefaultEntry();
     } catch {
       localStorage.removeItem(key);
     }
@@ -409,6 +421,8 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
     this.pendingLockRetry = false;
     this.overallFuelingTankLevelStart = null;
     this.overallFuelingTankLevelEnd = null;
+    this.entries.set([]);
+    this.entry = this.getDefaultEntry();
     this.removePersistedDraftState();
   }
 
