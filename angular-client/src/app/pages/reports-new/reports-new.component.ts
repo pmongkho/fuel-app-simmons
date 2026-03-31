@@ -224,6 +224,12 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
       this.resetDraftState();
       this.submitMessage.set('Draft report discarded.');
     } catch (error: unknown) {
+      if (error instanceof HttpErrorResponse && error.status === 404) {
+        this.resetDraftState();
+        this.submitMessage.set('Draft was already missing on the server. Local draft state was cleared.');
+        return;
+      }
+
       const message =
         typeof error === 'object' &&
         error !== null &&
