@@ -12,7 +12,10 @@ namespace dotnet_server.Api.Controllers;
 [ApiController]
 [Route("api/supervisor")]
 [Authorize(Roles = $"{nameof(UserRole.Supervisor)},{nameof(UserRole.Admin)}")]
-public class SupervisorController(AppDbContext dbContext, EmailService emailService) : ControllerBase
+public class SupervisorController(
+    AppDbContext dbContext,
+    EmailService emailService,
+    ILogger<SupervisorController> logger) : ControllerBase
 {
     [HttpGet("reports/pending")]
     public async Task<IActionResult> PendingReports([FromQuery] string? date)
@@ -277,7 +280,16 @@ public class SupervisorController(AppDbContext dbContext, EmailService emailServ
         await dbContext.SaveChangesAsync();
 
         if (movedToCompleted)
-            await emailService.SendReportCompletedAsync(report, report.CreatedByUser?.FullName ?? "Employee");
+        {
+            try
+            {
+                await emailService.SendReportCompletedAsync(report, report.CreatedByUser?.FullName ?? "Employee");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Report {ReportId} was completed but completion email notification failed.", report.Id);
+            }
+        }
 
         return Ok(new { message = "End gauge signed successfully." });
     }
