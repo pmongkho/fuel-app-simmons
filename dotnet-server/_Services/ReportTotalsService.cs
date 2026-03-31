@@ -1,5 +1,4 @@
 using dotnet_server.Domain.Entities;
-using dotnet_server.Domain.Enums;
 
 namespace dotnet_server.Application.Services;
 
@@ -12,9 +11,5 @@ public static class ReportTotalsService
         report.TotalDef = report.Entries.Where(x => x.FuelType == FuelType.Def).Sum(x => x.GallonsPumped);
         report.OverallTotalGallons = report.TotalRedDiesel + report.TotalClearDiesel + report.TotalDef;
 
-        if (report.Status == FuelReportStatus.Submitted && report.Entries.Count != 0 && report.Entries.All(x => x.VerificationStatus == VerificationStatus.Approved))
-        {
-            report.Status = FuelReportStatus.Completed;
-        }
     }
 }

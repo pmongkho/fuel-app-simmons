@@ -209,20 +209,9 @@ public class ReportsController(AppDbContext dbContext, EmailService emailService
             return BadRequest("Overall fueling tank levels must match total gallons pumped on entries.");
 
         report.SubmittedAtUtc = DateTime.UtcNow;
-        var shouldMarkCompleted = report.EndGaugeSignedBySupervisorId is not null;
-        report.Status = shouldMarkCompleted ? FuelReportStatus.Completed : FuelReportStatus.Submitted;
+        report.Status = FuelReportStatus.Submitted;
         await dbContext.SaveChangesAsync();
 
-        var employee = await dbContext.Users.FindAsync(report.CreatedByUserId);
-        var employeeName = employee?.FullName ?? "Employee";
-
-        if (shouldMarkCompleted)
-        {
-            await emailService.SendReportCompletedAsync(report, employeeName);
-            return Ok(new { message = "Report submitted and completed successfully." });
-        }
-
-        await emailService.SendReportSubmittedAsync(report, employeeName);
         return Ok(new { message = "Report submitted successfully." });
     }
 }
