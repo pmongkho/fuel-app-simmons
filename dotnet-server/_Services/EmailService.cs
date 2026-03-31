@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Net.Mail;
 using System.Text.Json.Serialization;
 using dotnet_server._Data;
 using dotnet_server.Domain.Entities;
@@ -154,6 +155,27 @@ public class EmailService(
             }
         }
 
+        if (!IsValidEmailAddress(options.FromEmail))
+        {
+            logger.LogWarning("Resend is not configured. Invalid FromEmail format: {FromEmail}", options.FromEmail);
+
+            foreach (var recipient in recipients)
+            {
+                dbContext.EmailLogs.Add(new EmailLog
+                {
+                    FuelReportId = report.Id,
+                    RecipientEmail = recipient.Email,
+                    Subject = subject,
+                    Status = "Skipped",
+                    ErrorMessage = $"Resend is not configured (invalid FromEmail: {options.FromEmail}).",
+                    SentAtUtc = DateTime.UtcNow
+                });
+            }
+
+            await dbContext.SaveChangesAsync();
+            return;
+        }
+
         httpClient.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
 
@@ -232,6 +254,19 @@ public class EmailService(
         string.IsNullOrWhiteSpace(options.FromName)
             ? options.FromEmail.Trim()
             : $"{options.FromName.Trim()} <{options.FromEmail.Trim()}>";
+
+    private static bool IsValidEmailAddress(string email)
+    {
+        try
+        {
+            var parsed = new MailAddress(email);
+            return parsed.Address == email.Trim();
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     private static string BuildTextBody(FuelReport report, string employeeName, string intro, string timestampLabel, DateTime? timestamp) =>
         $"""
