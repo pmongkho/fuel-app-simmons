@@ -72,6 +72,7 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.hydrateDraftState();
+    this.reconcileHydratedDraftState();
     window.addEventListener('online', this.onlineRetryHandler);
     void this.refreshSupervisorSignOffStatus();
   }
@@ -206,11 +207,6 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
 
   private async discardDraftReport(): Promise<void> {
     this.submitMessage.set(null);
-
-    if (this.isStartGaugeLocked && this.draftReportId === null) {
-      this.submitMessage.set('Start gauge is locked but no draft id was found. Please refresh and retry.');
-      return;
-    }
 
     if (!this.draftReportId) {
       this.resetDraftState();
@@ -412,6 +408,20 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
     } catch {
       localStorage.removeItem(key);
     }
+  }
+
+  private reconcileHydratedDraftState(): void {
+    if (this.draftReportId !== null) return;
+
+    const hasStaleLockedGauge =
+      this.isStartGaugeLocked ||
+      this.isStartGaugeSignedOff ||
+      this.pendingLockRetry ||
+      this.overallFuelingTankLevelStart !== null ||
+      this.overallFuelingTankLevelEnd !== null;
+
+    if (!hasStaleLockedGauge) return;
+    this.resetDraftState();
   }
 
   private resetDraftState(): void {
