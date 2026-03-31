@@ -165,7 +165,6 @@ public class ReportsController(AppDbContext dbContext, EmailService emailService
         if (report is null) return NotFound();
         if (!CanAccessAllReports() && report.CreatedByUserId != CurrentUserId) return Forbid();
         if (report.Status != FuelReportStatus.Draft) return BadRequest("Only draft reports can be deleted.");
-        if (report.Entries.Count > 0) return BadRequest("Draft reports with entries cannot be deleted.");
         if (report.StartGaugeSignedBySupervisorId is not null || report.EndGaugeSignedBySupervisorId is not null)
             return BadRequest("Signed reports cannot be deleted.");
 
