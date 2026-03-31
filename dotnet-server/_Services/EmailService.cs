@@ -104,6 +104,12 @@ public class EmailService(
             return;
         }
 
+        var fuelEntries = await dbContext.FuelEntries
+            .Where(x => x.FuelReportId == report.Id)
+            .Include(x => x.Trailer)
+            .OrderBy(x => x.EnteredAtUtc)
+            .ToListAsync();
+
         var options = resendOptions.Value;
         if (string.IsNullOrWhiteSpace(options.ApiKey))
         {
@@ -188,8 +194,8 @@ public class EmailService(
                     From = BuildFromAddress(options),
                     To = [recipient.Email],
                     Subject = subject,
-                    Text = BuildTextBody(report, employeeName, textIntro, timestampLabel, timestamp),
-                    Html = BuildHtmlBody(report, employeeName, htmlIntro, timestampLabel, timestamp)
+                    Text = BuildTextBody(report, employeeName, textIntro, timestampLabel, timestamp, fuelEntries),
+                    Html = BuildHtmlBody(report, employeeName, htmlIntro, timestampLabel, timestamp, fuelEntries)
                 };
 
                 var response = await httpClient.PostAsJsonAsync("emails", payload);
@@ -268,27 +274,68 @@ public class EmailService(
         }
     }
 
-    private static string BuildTextBody(FuelReport report, string employeeName, string intro, string timestampLabel, DateTime? timestamp) =>
-        $"""
-         {intro}
+    private static string BuildTextBody(
+        FuelReport report,
+        string employeeName,
+        string intro,
+        string timestampLabel,
+        DateTime? timestamp,
+        IReadOnlyCollection<FuelEntry> fuelEntries)
+    {
+        var entryLines = fuelEntries.Count == 0
+            ? "None"
+            : string.Join(
+                Environment.NewLine,
+                fuelEntries.Select(entry =>
+                    $"- {entry.EnteredAtUtc:yyyy-MM-dd HH:mm:ss} UTC | {entry.FuelType} | {entry.GallonsPumped:0.##} gal | Trailer: {entry.Trailer?.TrailerNumber ?? "N/A"}"));
 
-         Employee: {employeeName}
-         Report date: {report.ReportDate:yyyy-MM-dd}
-         Report ID: {report.Id}
-         {timestampLabel}: {timestamp:yyyy-MM-dd HH:mm:ss}
+        return $"""
+                {intro}
 
-         Please review it in Fuel App.
-         """;
+                Employee: {employeeName}
+                Report date: {report.ReportDate:yyyy-MM-dd}
+                Report ID: {report.Id}
+                Start fuel gauge: {report.FuelingTankLevelStart}
+                End fuel gauge: {report.FuelingTankLevelEnd}
+                {timestampLabel}: {timestamp:yyyy-MM-dd HH:mm:ss}
 
-    private static string BuildHtmlBody(FuelReport report, string employeeName, string intro, string timestampLabel, DateTime? timestamp) =>
-        $"""
-         <p>{System.Net.WebUtility.HtmlEncode(intro)}</p>
-         <ul>
-           <li><strong>Employee:</strong> {System.Net.WebUtility.HtmlEncode(employeeName)}</li>
-           <li><strong>Report date:</strong> {report.ReportDate:yyyy-MM-dd}</li>
-           <li><strong>Report ID:</strong> {report.Id}</li>
-           <li><strong>{System.Net.WebUtility.HtmlEncode(timestampLabel)}:</strong> {timestamp:yyyy-MM-dd HH:mm:ss}</li>
-         </ul>
-         <p>Please review it in Fuel App.</p>
-         """;
+                Fuel entries:
+                {entryLines}
+
+                Please review it in Fuel App.
+                """;
+    }
+
+    private static string BuildHtmlBody(
+        FuelReport report,
+        string employeeName,
+        string intro,
+        string timestampLabel,
+        DateTime? timestamp,
+        IReadOnlyCollection<FuelEntry> fuelEntries)
+    {
+        var entryItems = fuelEntries.Count == 0
+            ? "<li>None</li>"
+            : string.Join(
+                string.Empty,
+                fuelEntries.Select(entry =>
+                    $"<li>{entry.EnteredAtUtc:yyyy-MM-dd HH:mm:ss} UTC | {System.Net.WebUtility.HtmlEncode(entry.FuelType.ToString())} | {entry.GallonsPumped:0.##} gal | Trailer: {System.Net.WebUtility.HtmlEncode(entry.Trailer?.TrailerNumber ?? "N/A")}</li>"));
+
+        return $"""
+                <p>{System.Net.WebUtility.HtmlEncode(intro)}</p>
+                <ul>
+                  <li><strong>Employee:</strong> {System.Net.WebUtility.HtmlEncode(employeeName)}</li>
+                  <li><strong>Report date:</strong> {report.ReportDate:yyyy-MM-dd}</li>
+                  <li><strong>Report ID:</strong> {report.Id}</li>
+                  <li><strong>Start fuel gauge:</strong> {report.FuelingTankLevelStart}</li>
+                  <li><strong>End fuel gauge:</strong> {report.FuelingTankLevelEnd}</li>
+                  <li><strong>{System.Net.WebUtility.HtmlEncode(timestampLabel)}:</strong> {timestamp:yyyy-MM-dd HH:mm:ss}</li>
+                </ul>
+                <p><strong>Fuel entries:</strong></p>
+                <ul>
+                  {entryItems}
+                </ul>
+                <p>Please review it in Fuel App.</p>
+                """;
+    }
 }
