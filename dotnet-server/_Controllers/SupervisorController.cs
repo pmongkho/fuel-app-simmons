@@ -261,6 +261,8 @@ public class SupervisorController(
         if (report is null) return NotFound();
 
         var supervisorId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (report.Status != FuelReportStatus.Submitted)
+            return BadRequest("Report must be submitted before end gauge sign-off.");
         if (report.StartGaugeSignedBySupervisorId is null)
             return BadRequest("Start gauge sign-off is required before end gauge sign-off.");
         if (report.EndGaugeSignedBySupervisorId is not null)
@@ -270,27 +272,19 @@ public class SupervisorController(
         report.EndGaugeSupervisorSignatureName = request.SignatureName;
         report.EndGaugeSignedAtUtc = DateTime.UtcNow;
 
-        var movedToCompleted = false;
-        if (report.Status == FuelReportStatus.Submitted)
-        {
-            report.Status = FuelReportStatus.Completed;
-            movedToCompleted = true;
-        }
+        report.Status = FuelReportStatus.Completed;
 
         await dbContext.SaveChangesAsync();
 
-        if (movedToCompleted)
+        try
         {
-            try
-            {
-                await emailService.SendReportCompletedAsync(report, report.CreatedByUser?.FullName ?? "Employee");
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Report {ReportId} was completed but completion email notification failed.", report.Id);
-            }
+            await emailService.SendReportCompletedAsync(report, report.CreatedByUser?.FullName ?? "Employee");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Report {ReportId} was completed but completion email notification failed.", report.Id);
         }
 
-        return Ok(new { message = "End gauge signed successfully." });
+        return Ok(new { message = "End gauge signed successfully and report completed." });
     }
 }
