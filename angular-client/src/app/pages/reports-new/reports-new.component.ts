@@ -219,8 +219,8 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
 
     if (!this.draftReportId) {
       this.resetDraftState();
-      this.submitMessage.set('Draft cleared. Redirecting to My Reports...');
-      await this.router.navigate(['/reports/mine']);
+      this.submitMessage.set('Draft cleared. Loading a fresh report page...');
+      this.reloadNewReportPage();
       this.discardInProgress.set(false);
       return;
     }
@@ -233,13 +233,13 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
       );
 
       this.resetDraftState();
-      this.submitMessage.set('Draft report discarded. Redirecting to My Reports...');
-      await this.router.navigate(['/reports/mine']);
+      this.submitMessage.set('Draft report discarded. Loading a fresh report page...');
+      this.reloadNewReportPage();
     } catch (error: unknown) {
       if (error instanceof HttpErrorResponse && error.status === 404) {
         this.resetDraftState();
-        this.submitMessage.set('Draft was already missing on the server. Redirecting to My Reports...');
-        await this.router.navigate(['/reports/mine']);
+        this.submitMessage.set('Draft was already missing on the server. Loading a fresh report page...');
+        this.reloadNewReportPage();
         return;
       }
 
@@ -482,6 +482,10 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
 
   private isNetworkError(error: unknown): error is HttpErrorResponse {
     return error instanceof HttpErrorResponse && error.status === 0;
+  }
+
+  private reloadNewReportPage(): void {
+    window.location.assign('/reports/new');
   }
 
   isFormLockedUntilStartSignOff(): boolean {
