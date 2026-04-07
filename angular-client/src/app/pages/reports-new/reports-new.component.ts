@@ -60,6 +60,9 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
   confirmDialogBody = '';
   private confirmDialogAction: ConfirmationAction | null = null;
   readonly submitInProgress = signal(false);
+  readonly lockInProgress = signal(false);
+  readonly discardInProgress = signal(false);
+  readonly signOffRefreshInProgress = signal(false);
   readonly submitMessage = signal<string | null>(null);
 
   entry: Entry = this.getDefaultEntry();
@@ -74,7 +77,7 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
     this.hydrateDraftState();
     this.reconcileHydratedDraftState();
     window.addEventListener('online', this.onlineRetryHandler);
-    void this.refreshSupervisorSignOffStatus();
+    void this.refreshSupervisorSignOffStatus(false);
   }
 
   ngOnDestroy(): void {
@@ -172,6 +175,9 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.lockInProgress.set(true);
+    this.submitMessage.set('Locking start gauge...');
+
     try {
       const reportId = await this.ensureDraftReportCreated();
       if (!reportId) {
@@ -183,7 +189,7 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
       this.isStartGaugeSignedOff = false;
       this.pendingLockRetry = false;
       this.persistDraftState();
-      this.submitMessage.set('Start gauge locked and saved. Supervisor sign-off can be completed now.');
+      this.submitMessage.set('Start gauge locked and saved. Checking supervisor sign-off status...');
       await this.refreshSupervisorSignOffStatus();
     } catch (error: unknown) {
       if (this.isNetworkError(error)) {
@@ -202,15 +208,20 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
           : 'Unable to lock start gauge. Please try again.';
 
       this.submitMessage.set(message);
+    } finally {
+      this.lockInProgress.set(false);
     }
   }
 
   private async discardDraftReport(): Promise<void> {
-    this.submitMessage.set(null);
+    this.discardInProgress.set(true);
+    this.submitMessage.set('Discarding draft report...');
 
     if (!this.draftReportId) {
       this.resetDraftState();
-      this.submitMessage.set('Draft cleared.');
+      this.submitMessage.set('Draft cleared. Redirecting to My Reports...');
+      await this.router.navigate(['/reports/mine']);
+      this.discardInProgress.set(false);
       return;
     }
 
@@ -222,11 +233,13 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
       );
 
       this.resetDraftState();
-      this.submitMessage.set('Draft report discarded.');
+      this.submitMessage.set('Draft report discarded. Redirecting to My Reports...');
+      await this.router.navigate(['/reports/mine']);
     } catch (error: unknown) {
       if (error instanceof HttpErrorResponse && error.status === 404) {
         this.resetDraftState();
-        this.submitMessage.set('Draft was already missing on the server. Local draft state was cleared.');
+        this.submitMessage.set('Draft was already missing on the server. Redirecting to My Reports...');
+        await this.router.navigate(['/reports/mine']);
         return;
       }
 
@@ -238,6 +251,8 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
           ? (error as { error: string }).error
           : 'Unable to discard draft report.';
       this.submitMessage.set(message);
+    } finally {
+      this.discardInProgress.set(false);
     }
   }
 
@@ -473,8 +488,13 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
     return !this.isStartGaugeSignedOff;
   }
 
-  async refreshSupervisorSignOffStatus(): Promise<void> {
+  async refreshSupervisorSignOffStatus(showLoadingState = true): Promise<void> {
     if (!this.draftReportId || !this.isStartGaugeLocked) return;
+
+    if (showLoadingState) {
+      this.signOffRefreshInProgress.set(true);
+      this.submitMessage.set('Checking supervisor sign-off status...');
+    }
 
     try {
       const report = await firstValueFrom(
@@ -489,9 +509,17 @@ export class ReportsNewComponent implements OnInit, OnDestroy {
 
       if (this.isStartGaugeSignedOff) {
         this.submitMessage.set('Start gauge has been signed off. You can now complete the fuel report.');
+      } else if (showLoadingState) {
+        this.submitMessage.set('No supervisor sign-off found yet. Try again in a moment.');
       }
     } catch {
-      // Ignore refresh failures and keep current local lock state.
+      if (showLoadingState) {
+        this.submitMessage.set('Unable to refresh supervisor sign-off status right now.');
+      }
+    } finally {
+      if (showLoadingState) {
+        this.signOffRefreshInProgress.set(false);
+      }
     }
   }
 
