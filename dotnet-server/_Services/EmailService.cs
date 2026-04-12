@@ -297,6 +297,8 @@ public class EmailService(
                 Report ID: {report.Id}
                 Start fuel gauge: {report.FuelingTankLevelStart}
                 End fuel gauge: {report.FuelingTankLevelEnd}
+                Start gauge supervisor sign-off (UTC): {FormatUtcTimestamp(report.StartGaugeSignedAtUtc)}
+                End gauge supervisor sign-off (UTC): {FormatUtcTimestamp(report.EndGaugeSignedAtUtc)}
                 {timestampLabel}: {timestamp:yyyy-MM-dd HH:mm:ss}
 
                 Fuel entries:
@@ -329,6 +331,8 @@ public class EmailService(
                   <li><strong>Report ID:</strong> {report.Id}</li>
                   <li><strong>Start fuel gauge:</strong> {report.FuelingTankLevelStart}</li>
                   <li><strong>End fuel gauge:</strong> {report.FuelingTankLevelEnd}</li>
+                  <li><strong>Start gauge supervisor sign-off (UTC):</strong> {System.Net.WebUtility.HtmlEncode(FormatUtcTimestamp(report.StartGaugeSignedAtUtc))}</li>
+                  <li><strong>End gauge supervisor sign-off (UTC):</strong> {System.Net.WebUtility.HtmlEncode(FormatUtcTimestamp(report.EndGaugeSignedAtUtc))}</li>
                   <li><strong>{System.Net.WebUtility.HtmlEncode(timestampLabel)}:</strong> {timestamp:yyyy-MM-dd HH:mm:ss}</li>
                 </ul>
                 <p><strong>Fuel entries:</strong></p>
@@ -338,4 +342,7 @@ public class EmailService(
                 <p>Please review it in Fuel App.</p>
                 """;
     }
+
+    private static string FormatUtcTimestamp(DateTime? timestamp) =>
+        timestamp.HasValue ? $"{timestamp.Value:yyyy-MM-dd HH:mm:ss}" : "Not signed";
 }
